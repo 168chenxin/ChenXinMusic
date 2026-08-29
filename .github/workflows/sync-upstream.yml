@@ -66,11 +66,19 @@ jobs:
           if git merge-base --is-ancestor "$upstream_commit" HEAD; then
             echo "Upstream commit $upstream_commit is already included."
           elif ! git merge --no-ff --no-commit --no-edit "$upstream_commit"; then
-            echo 'Upstream merge conflict:' >&2
-            git status --short >&2
-            git diff --name-only --diff-filter=U >&2
-            git merge --abort || true
-            exit 1
+            conflict_files="$(git diff --name-only --diff-filter=U)"
+            if [[ "$conflict_files" == 'project.yml' ]]; then
+              # ponytail: keep the local manifest on the known version-only conflict; revisit if upstream adds required settings.
+              echo 'Resolving known project.yml version conflict with local manifest.'
+              git checkout --ours project.yml
+              git add project.yml
+            else
+              echo 'Upstream merge conflict:' >&2
+              git status --short >&2
+              printf '%s\n' "$conflict_files" >&2
+              git merge --abort || true
+              exit 1
+            fi
           fi
 
       - name: Verify customizations and prepare version

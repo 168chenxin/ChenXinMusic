@@ -67,6 +67,7 @@ if ($sync -notmatch 'schedule:' -or $sync -notmatch 'workflow_dispatch:') { thro
 if ($sync -notmatch '\[skip ci\]') { throw 'Duplicate build prevention regression' }
 if ($sync -notmatch 'publish_release=true') { throw 'Release build dispatch regression' }
 if ($sync -notmatch 'UpdateChecker.swift' -or $sync -notmatch 'BrandSoda.imageset') { throw 'Customization guard regression' }
+if ($sync -notmatch 'git checkout --ours project.yml') { throw 'Known project manifest conflict regression' }
 if ($upstreamState.Trim() -notmatch '^v1\.5\.5$') { throw 'Initial upstream state regression' }
 
 foreach ($asset in @(

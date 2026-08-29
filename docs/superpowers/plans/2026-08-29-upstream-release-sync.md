@@ -75,7 +75,7 @@ permissions:
   actions: write
 ```
 
-实现步骤：checkout `main` 且 `fetch-depth: 0`；调用 `https://api.github.com/repos/XIaodou0416/Beans-Music/releases/latest` 并用 `jq` 读取 `tag_name`；校验标签格式；fetch 对应 tag；标签未变化时结束。标签变化时执行 `git merge --no-ff --no-edit`，冲突时输出未合并文件、执行 `git merge --abort` 并失败。合并后检查“称心播放器”、汽水音乐实现和资源、Logo 资源以及 `UpdateChecker.swift` 中的自有仓库路径。通过后将 `project.yml` 的 `MARKETING_VERSION` 更新为去掉前缀 `v` 的上游标签版本，更新 `.github/upstream-release`，用带 `[skip ci]` 的提交推送 `main`，最后运行 `gh workflow run build-unsigned-ipa.yml --ref main -f publish_release=true`。
+实现步骤：checkout `main` 且 `fetch-depth: 0`；调用 `https://api.github.com/repos/XIaodou0416/Beans-Music/releases/latest` 并用 `jq` 读取 `tag_name`；校验标签格式；fetch 对应 tag；标签未变化时结束。标签变化时执行 `git merge --no-ff --no-commit --no-edit`；当前已知的单一 `project.yml` 版本冲突保留本地清单，其他冲突输出未合并文件、执行 `git merge --abort` 并失败。合并后检查“称心播放器”、汽水音乐实现和资源、Logo 资源以及 `UpdateChecker.swift` 中的自有仓库路径。通过后将 `project.yml` 的 `MARKETING_VERSION` 更新为去掉前缀 `v` 的上游标签版本，更新 `.github/upstream-release`，用带 `[skip ci]` 的提交推送 `main`，最后运行 `gh workflow run build-unsigned-ipa.yml --ref main -f publish_release=true`。
 
 - [ ] **步骤 3：运行回归检查确认通过**
 
