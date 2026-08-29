@@ -15,6 +15,8 @@ $discover = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'Beans/DiscoverView
 $readme = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'README.md')
 $features = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'FEATURES.md')
 $appIcon = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'Beans/Assets.xcassets/AppIcon.appiconset/Contents.json')
+$sync = Get-Content -Raw -Encoding UTF8 (Join-Path $root '.github/workflows/sync-upstream.yml')
+$upstreamState = Get-Content -Raw -Encoding UTF8 (Join-Path $root '.github/upstream-release')
 
 if ($auth -notmatch 'normalizeLoginCookies') { throw 'QQ cookie normalization regression' }
 if ($auth -notmatch 'wxrefresh_token') { throw 'WeChat QQ credential regression' }
@@ -59,6 +61,13 @@ if ($discover -notmatch 'SodaAuth\.shared\.searchSongs') { throw 'Discover soda 
 if (-not ($readme.Contains($neteaseName) -and $readme.Contains('QQ') -and $readme.Contains($kugouName) -and $readme.Contains($sodaName))) { throw 'README platform documentation regression' }
 if (-not ($features.Contains($neteaseName) -and $features.Contains('QQ') -and $features.Contains($kugouName) -and $features.Contains($sodaName))) { throw 'Feature platform documentation regression' }
 if ($appIcon -notmatch '"idiom"\s*:\s*"ios-marketing"' -or $appIcon -notmatch '"size"\s*:\s*"1024x1024"') { throw 'AppIcon metadata regression' }
+if ($sync -notmatch 'XIaodou0416/Beans-Music') { throw 'Upstream repository regression' }
+if ($sync -notmatch 'releases/latest') { throw 'Stable release lookup regression' }
+if ($sync -notmatch 'schedule:' -or $sync -notmatch 'workflow_dispatch:') { throw 'Sync trigger regression' }
+if ($sync -notmatch '\[skip ci\]') { throw 'Duplicate build prevention regression' }
+if ($sync -notmatch 'publish_release=true') { throw 'Release build dispatch regression' }
+if ($sync -notmatch 'UpdateChecker.swift' -or $sync -notmatch 'BrandSoda.imageset') { throw 'Customization guard regression' }
+if ($upstreamState.Trim() -notmatch '^v1\.5\.5$') { throw 'Initial upstream state regression' }
 
 foreach ($asset in @(
     'Beans/Assets.xcassets/AppIcon.appiconset/AppIcon.png',
