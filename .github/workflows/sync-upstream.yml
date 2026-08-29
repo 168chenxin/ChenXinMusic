@@ -134,4 +134,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: gh workflow run build-unsigned-ipa.yml --ref main -f publish_release=true
+        run: gh workflow run build-unsigned-ipa.yml --repo 168chenxin/ChenXinMusic --ref main -f publish_release=true
