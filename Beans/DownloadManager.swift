@@ -76,7 +76,18 @@ final class DownloadManager {
             // 2) 下载到临时文件
             let tempURL: URL
             do {
-                let (downloaded, response) = try await URLSession.shared.download(from: url)
+                let downloadedAndResponse: (URL, URLResponse)
+                if song.source == .soda {
+                    var request = URLRequest(url: url)
+                    request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 Version/16.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+                    request.setValue("https://www.qishui.com/", forHTTPHeaderField: "Referer")
+                    let cookie = SodaAuth.shared.cookieHeader
+                    if !cookie.isEmpty { request.setValue(cookie, forHTTPHeaderField: "Cookie") }
+                    downloadedAndResponse = try await URLSession.shared.download(for: request)
+                } else {
+                    downloadedAndResponse = try await URLSession.shared.download(from: url)
+                }
+                let (downloaded, response) = downloadedAndResponse
                 if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
                     lastError = NetEaseError.unknown("下载失败（HTTP \(http.statusCode)）")
                     continue
@@ -120,6 +131,8 @@ final class DownloadManager {
             return try? await QQMusicAPI.shared.songURL(songmid: mid, mediaMid: song.qqMediaMid, br: quality.qqBR)
         } else if song.source == .kugou {
             return try? await KugouMusicAPI.shared.songURL(song: song)
+        } else if song.source == .soda {
+            return try? await SodaAuth.shared.songURL(song: song)
         } else {
             let urls = try? await NetEaseAPI.shared.songURLs(ids: [song.id], level: quality.neteaseLevel)
             return urls?[song.id]

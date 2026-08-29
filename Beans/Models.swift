@@ -30,11 +30,12 @@ enum BeansAudioQuality: String, CaseIterable, Identifiable {
     }
 }
 
-/// 歌曲来源（网易云 / QQ音乐 / 酷狗音乐）
+/// 歌曲来源（网易云 / QQ音乐 / 酷狗音乐 / 汽水音乐）
 enum SongSource: String, Codable, Sendable {
     case netease
     case qq
     case kugou
+    case soda
 
     /// 兼容旧版本地收藏：未知或已下线来源统一回退为网易云
     init(from decoder: Decoder) throws {
@@ -50,7 +51,7 @@ struct Song: Identifiable, Hashable, Codable {
     let album: String
     let coverURL: URL?
     let duration: TimeInterval
-    /// 歌曲来源（网易云 / QQ音乐）
+    /// 歌曲来源（网易云 / QQ音乐 / 酷狗音乐 / 汽水音乐）
     let source: SongSource
     /// QQ 音乐 songmid（source == .qq 时用于获取播放地址与歌词）
     let qqMid: String?
@@ -61,6 +62,8 @@ struct Song: Identifiable, Hashable, Codable {
     let kugouAlbumAudioId: String?
     let kugouAlbumId: String?
     let kugouQualityHashes: [String: String]?
+    /// 汽水音乐曲目 ID（source == .soda 时用于标识歌曲）
+    let sodaTrackID: String?
     /// 付费/VIP 标记（网易云：0 免费、1 VIP、4 付费单曲；QQ：0 免费、非 0 付费）
     let fee: Int
 
@@ -75,6 +78,7 @@ struct Song: Identifiable, Hashable, Codable {
         case .qq: return "qq-\(id)"
         case .kugou: return "kugou-\(id)"
         case .netease: return "netease-\(id)"
+        case .soda: return "soda-\(id)"
         }
     }
 
@@ -89,10 +93,12 @@ struct Song: Identifiable, Hashable, Codable {
             return fee != 0
         case .kugou:
             return fee != 0
+        case .soda:
+            return fee != 0
         }
     }
 
-    init(id: Int, name: String, artists: String, album: String, coverURL: URL?, duration: TimeInterval, source: SongSource = .netease, qqMid: String? = nil, qqMediaMid: String? = nil, kugouHash: String? = nil, kugouAlbumAudioId: String? = nil, kugouAlbumId: String? = nil, kugouQualityHashes: [String: String]? = nil, fee: Int = 0) {
+    init(id: Int, name: String, artists: String, album: String, coverURL: URL?, duration: TimeInterval, source: SongSource = .netease, qqMid: String? = nil, qqMediaMid: String? = nil, kugouHash: String? = nil, kugouAlbumAudioId: String? = nil, kugouAlbumId: String? = nil, kugouQualityHashes: [String: String]? = nil, sodaTrackID: String? = nil, fee: Int = 0) {
         self.id = id
         self.name = name
         self.artists = artists
@@ -106,7 +112,12 @@ struct Song: Identifiable, Hashable, Codable {
         self.kugouAlbumAudioId = kugouAlbumAudioId
         self.kugouAlbumId = kugouAlbumId
         self.kugouQualityHashes = kugouQualityHashes
+        self.sodaTrackID = sodaTrackID
         self.fee = fee
+    }
+
+    init(soda id: Int, name: String, artists: String, album: String, coverURL: URL?, duration: TimeInterval, trackID: String, fee: Int = 0) {
+        self.init(id: id, name: name, artists: artists, album: album, coverURL: coverURL, duration: duration, source: .soda, sodaTrackID: trackID, fee: fee)
     }
 
     init?(json: [String: Any]) {
@@ -136,10 +147,11 @@ struct Song: Identifiable, Hashable, Codable {
         kugouAlbumAudioId = nil
         kugouAlbumId = nil
         kugouQualityHashes = nil
+        sodaTrackID = nil
         fee = json["fee"] as? Int ?? 0
     }
 
-    private enum CodingKeys: String, CodingKey { case id, name, artists, album, coverURL, duration, source, qqMid, qqMediaMid, kugouHash, kugouAlbumAudioId, kugouAlbumId, kugouQualityHashes, fee }
+    private enum CodingKeys: String, CodingKey { case id, name, artists, album, coverURL, duration, source, qqMid, qqMediaMid, kugouHash, kugouAlbumAudioId, kugouAlbumId, kugouQualityHashes, sodaTrackID, fee }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -156,6 +168,7 @@ struct Song: Identifiable, Hashable, Codable {
         kugouAlbumAudioId = try c.decodeIfPresent(String.self, forKey: .kugouAlbumAudioId)
         kugouAlbumId = try c.decodeIfPresent(String.self, forKey: .kugouAlbumId)
         kugouQualityHashes = try c.decodeIfPresent([String: String].self, forKey: .kugouQualityHashes)
+        sodaTrackID = try c.decodeIfPresent(String.self, forKey: .sodaTrackID)
         fee = try c.decodeIfPresent(Int.self, forKey: .fee) ?? 0
     }
 
@@ -174,6 +187,7 @@ struct Song: Identifiable, Hashable, Codable {
         try c.encodeIfPresent(kugouAlbumAudioId, forKey: .kugouAlbumAudioId)
         try c.encodeIfPresent(kugouAlbumId, forKey: .kugouAlbumId)
         try c.encodeIfPresent(kugouQualityHashes, forKey: .kugouQualityHashes)
+        try c.encodeIfPresent(sodaTrackID, forKey: .sodaTrackID)
         try c.encode(fee, forKey: .fee)
     }
 }
@@ -202,16 +216,19 @@ struct Playlist: Identifiable, Hashable {
     var coverURL: URL?
     let trackCount: Int
     let creatorName: String
-    /// 歌单来源（网易云 / QQ音乐），非网易云歌单用对应接口加载
+    /// 歌单来源（网易云 / QQ音乐 / 酷狗 / 汽水），非网易云歌单用对应接口加载
     let source: SongSource
+    /// 原始歌单 ID（汽水音乐使用字符串 ID）
+    let rawID: String?
 
-    init(id: Int, name: String, coverURL: URL?, trackCount: Int = 0, source: SongSource = .netease) {
+    init(id: Int, name: String, coverURL: URL?, trackCount: Int = 0, source: SongSource = .netease, rawID: String? = nil) {
         self.id = id
         self.name = name
         self.coverURL = coverURL
         self.trackCount = trackCount
         self.creatorName = ""
         self.source = source
+        self.rawID = rawID
     }
 
     init?(json: [String: Any]) {
@@ -223,6 +240,7 @@ struct Playlist: Identifiable, Hashable {
         coverURL = pic.isEmpty ? nil : URL(string: pic)
         creatorName = (json["creator"] as? [String: Any])?["nickname"] as? String ?? ""
         source = .netease
+        rawID = nil
     }
 
     init?(personalizedJSON json: [String: Any]) {
@@ -234,6 +252,7 @@ struct Playlist: Identifiable, Hashable {
         coverURL = pic.isEmpty ? nil : URL(string: pic)
         creatorName = ""
         source = .netease
+        rawID = nil
     }
 }
 

@@ -11,6 +11,7 @@ struct QQWebLoginPanel: View {
     @State private var pageLoaded = false
     @State private var syncing = false
     @State private var message = ""
+    @State private var timer: Timer?
     let onSuccess: () -> Void
 
     var body: some View {
@@ -65,18 +66,32 @@ struct QQWebLoginPanel: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 12)
         }
+        .onAppear { startAutoDetect() }
+        .onDisappear { timer?.invalidate(); timer = nil }
     }
 
-    // MARK: - 手动同步
+    // MARK: - 自动检测 / 手动同步
 
+    private func startAutoDetect() {
+        timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { _ in
+            readCookies { dict in
+                let auth = QQMusicAuth.shared
+                let normalized = QQMusicAuth.normalizeLoginCookies(dict)
+                guard auth.hasValidLogin(normalized) else { return }
+                auth.importCookies(normalized, nickname: nil)
+                finishSuccess()
+            }
+        }
+    }
     private func syncNow() {
         syncing = true
         message = ""
         readCookies { dict in
             syncing = false
             let auth = QQMusicAuth.shared
-            if auth.hasValidLogin(dict) {
-                auth.importCookies(dict, nickname: nil)
+            let normalized = QQMusicAuth.normalizeLoginCookies(dict)
+            if auth.hasValidLogin(normalized) {
+                auth.importCookies(normalized, nickname: nil)
                 finishSuccess()
             } else {
                 message = "未检测到有效登录态，请先在网页中完成 QQ 登录"
@@ -85,6 +100,8 @@ struct QQWebLoginPanel: View {
     }
 
     private func finishSuccess() {
+        timer?.invalidate()
+        timer = nil
         message = "✓ QQ 音乐登录成功"
         BeansHaptics.success()
         ToastCenter.shared.show("QQ 音乐登录成功")
@@ -101,12 +118,11 @@ struct QQWebLoginPanel: View {
             for cookie in cookies where wanted.contains(cookie.name) || cookie.name.hasPrefix("ptnick") {
                 dict[cookie.name] = cookie.value
             }
-            // 兜底：白名单未命中时，收下 qq.com 域的全部 Cookie
-            if dict["uin"] == nil || dict["p_skey"] == nil {
-                for cookie in cookies where cookie.domain.hasSuffix("qq.com") {
-                    dict[cookie.name] = cookie.value
-                }
+            // 微信扫码会把 wxuin / wxrefresh_token 等新字段写到 qq.com 子域。
+            for cookie in cookies where cookie.domain.lowercased().hasSuffix("qq.com") {
+                dict[cookie.name] = cookie.value
             }
+            dict = QQMusicAuth.normalizeLoginCookies(dict)
             DispatchQueue.main.async {
                 completion(dict)
             }

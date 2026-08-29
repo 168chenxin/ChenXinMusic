@@ -381,6 +381,8 @@ final class PlayerManager: NSObject, ObservableObject {
                 if urlString == nil {
                     (urlString, resolvedThirdParty) = await qqFallback(song: song, quality: quality, enableUnblock: enableUnblock, strict: strictUnlock)
                 }
+            } else if song.source == .soda {
+                urlString = try? await SodaAuth.shared.songURL(song: song)
             } else {
                 (urlString, resolvedThirdParty) = await neteaseResolve(song: song, quality: quality, enableUnblock: enableUnblock, strict: strictUnlock)
             }
@@ -568,7 +570,18 @@ final class PlayerManager: NSObject, ObservableObject {
         // QQ 官方 CDN（isure.stream.qqmusic.qq.com 等）要求 UA/Referer 请求头，
         // 否则裸 GET 会被拒绝（403），导致播放成功却无声、进度条不动。
         let item: AVPlayerItem
-        if url.host?.contains("qq.com") == true {
+        if currentSong?.source == .soda {
+            var headers = [
+                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 Version/16.0 Mobile/15E148 Safari/604.1",
+                "Referer": "https://www.qishui.com/",
+            ]
+            let cookie = SodaAuth.shared.cookieHeader
+            if !cookie.isEmpty { headers["Cookie"] = cookie }
+            let asset = AVURLAsset(url: url, options: [
+                "AVURLAssetHTTPHeaderFieldsKey": headers
+            ])
+            item = AVPlayerItem(asset: asset)
+        } else if url.host?.contains("qq.com") == true {
             var headers = [
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:80.0) Gecko/20100101 Firefox/80.0",
                 "Referer": "https://y.qq.com/",
@@ -720,6 +733,8 @@ final class PlayerManager: NSObject, ObservableObject {
                 return false
             }
             return user.vipBadge != nil
+        case .soda:
+            return SodaAuth.shared.vipBadge != nil
         }
     }
 

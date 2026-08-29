@@ -30,6 +30,8 @@ final class FavoritesStore: ObservableObject {
             return qqFavoriteSongs.contains { $0.qqMid == mid }
         case .kugou:
             return false
+        case .soda:
+            return false
         }
     }
 
@@ -64,6 +66,8 @@ final class FavoritesStore: ObservableObject {
             }
             return true
         case .kugou:
+            return false
+        case .soda:
             return false
         }
     }

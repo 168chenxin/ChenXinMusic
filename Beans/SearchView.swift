@@ -42,6 +42,7 @@ enum SearchProvider: String, CaseIterable, Identifiable {
     case netease = "网易云"
     case qq = "QQ音乐"
     case kugou = "酷狗音乐"
+    case soda = "汽水音乐"
 
     var id: String { rawValue }
 
@@ -57,6 +58,9 @@ enum SearchProvider: String, CaseIterable, Identifiable {
         case .kugou: return LinearGradient(
             colors: [Color(red: 0.12, green: 0.58, blue: 0.95), Color(red: 0.02, green: 0.32, blue: 0.72)],
             startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .soda: return LinearGradient(
+            colors: [Color(red: 0.12, green: 0.47, blue: 0.98), Color(red: 0.05, green: 0.24, blue: 0.75)],
+            startPoint: .topLeading, endPoint: .bottomTrailing)
         }
     }
 
@@ -65,6 +69,7 @@ enum SearchProvider: String, CaseIterable, Identifiable {
         case .netease: return "cloud.fill"
         case .qq: return "play.rectangle.fill"
         case .kugou: return "music.note"
+        case .soda: return "music.note.list"
         }
     }
 
@@ -73,6 +78,7 @@ enum SearchProvider: String, CaseIterable, Identifiable {
         case .netease: return "BrandNetease"
         case .qq: return "BrandQQ"
         case .kugou: return "BrandKugou"
+        case .soda: return "BrandSoda"
         }
     }
 }
@@ -724,6 +730,8 @@ struct SearchView: View {
             }
         } else if provider == .kugou {
             hotWords = await KugouMusicAPI.shared.hotWords()
+        } else if provider == .soda {
+            hotWords = []
         } else if let words = try? await NetEaseAPI.shared.hotSearch() {
             hotWords = words
         }
@@ -779,6 +787,13 @@ struct SearchView: View {
                     let albums = try await KugouMusicAPI.shared.searchAlbums(keyword: trimmed)
                     guard !Task.isCancelled else { return }
                     albumResults = albums
+                case (.soda, .song):
+                    let songs = try await SodaAuth.shared.searchSongs(keyword: trimmed, limit: 40)
+                    guard !Task.isCancelled else { return }
+                    songResults = songs
+                    if !songs.isEmpty { BeansHaptics.success() }
+                case (.soda, .artist), (.soda, .album):
+                    throw NetEaseError.unknown("汽水音乐暂不支持歌手和专辑搜索")
                 }
                 let count = resultType == .song ? songResults.count : (resultType == .artist ? artistResults.count : albumResults.count)
                 BeansLogger.shared.log("搜索完成：\(provider.rawValue) [\(resultType.rawValue)] \(trimmed) 结果=\(count)", level: .info)

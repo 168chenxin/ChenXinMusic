@@ -1399,6 +1399,9 @@ struct PlayerView: View {
         case .kugou:
             let encoded = song.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? song.name
             return URL(string: "https://www.kugou.com/yy/html/search.html#searchType=song&searchKeyWord=\(encoded)")
+        case .soda:
+            let encoded = song.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? song.name
+            return URL(string: "https://www.qishui.com/search/?keyword=\(encoded)")
         }
     }
 
@@ -1529,6 +1532,8 @@ struct PlayerView: View {
             if let raw = try? await QQMusicAPI.shared.lyric(songmid: mid) {
                 apply(LyricParser.parse(raw))
             }
+        } else if song.source == .soda {
+            return
         } else {
             if let (lrc, tlyric) = try? await NetEaseAPI.shared.lyricWithTranslation(id: song.id) {
                 apply(LyricParser.parse(lrc ?? "", translationRaw: tlyric))

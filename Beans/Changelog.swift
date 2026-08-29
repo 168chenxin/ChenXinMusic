@@ -43,6 +43,21 @@ enum ChangelogStore {
 
     static let logs: [VersionLog] = [
         VersionLog(
+            id: "1.5.6",
+            version: "1.5.6",
+            title: "汽水音乐与音源兼容",
+            features: [
+                "新增汽水音乐登录、搜索、歌单同步与播放支持",
+                "第三方音源支持导入落雪 LX JavaScript 脚本，并兼容更多 JSON 配置格式"
+            ],
+            fixes: [
+                "修复 QQ 音乐微信扫码登录后同步登录状态失败的问题",
+                "修复 URL 导入落雪音源脚本失败，并完善导入音源播放解析",
+                "修复汽水音乐无效 Cookie 被误判为已登录、切换账号后会员标识可能残留的问题",
+                "修复酷狗音乐 API 的 Swift 编译错误"
+            ]
+        ),
+        VersionLog(
             id: "1.5.5",
             version: "1.5.5",
             title: "播放流畅度与发热优化",

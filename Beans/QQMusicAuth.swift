@@ -58,12 +58,16 @@ final class QQMusicAuth: ObservableObject {
     /// 播放接口 authst。QQ vkey 优先识别音乐域凭证，p_skey 仅作旧登录态兜底。
     var loginKey: String {
         cookies["qm_keyst"] ?? cookies["qqmusic_key"] ?? cookies["music_key"]
-            ?? cookies["wxskey"] ?? cookies["musickey"] ?? cookies["p_skey"] ?? ""
+            ?? cookies["wxskey"] ?? cookies["musickey"] ?? cookies["p_skey"]
+            ?? cookies["wxrefresh_token"] ?? cookies["wx_access_token"] ?? ""
     }
 
     /// 发给 u.y.qq.com 的 Cookie 串（含 qqmusic_key 时 VIP 歌曲播放成功率最高）
     var cookieHeader: String {
-        let order = ["uin", "p_uin", "qm_keyst", "qqmusic_key", "music_key", "wxskey", "musickey", "p_skey", "skey", "pt4_token"]
+        let order = [
+            "uin", "p_uin", "wxuin", "wxopenid", "wxrefresh_token", "wx_access_token",
+            "qm_keyst", "qqmusic_key", "music_key", "wxskey", "musickey", "p_skey", "skey", "pt4_token"
+        ]
         return order.compactMap { key in
             guard let value = cookies[key], !value.isEmpty else { return nil }
             return "\(key)=\(value)"
@@ -85,10 +89,11 @@ final class QQMusicAuth: ObservableObject {
 
     /// 网页登录（WKWebView 读取）或手动粘贴 Cookie 导入登录态
     func importCookies(_ dict: [String: String], nickname: String?) {
-        guard !dict.isEmpty else { return }
-        cookies = dict
+        let normalized = Self.normalizeLoginCookies(dict)
+        guard !normalized.isEmpty else { return }
+        cookies = normalized
         isLoggedIn = true
-        self.nickname = nickname ?? Self.fallbackNickname(dict)
+        self.nickname = nickname ?? Self.fallbackNickname(normalized)
         defaults.set(cookies, forKey: cookieKey)
         defaults.set(self.nickname, forKey: nickKey)
         NotificationCenter.default.post(name: .beansQQLoginDidUpdate, object: nil)
@@ -99,19 +104,39 @@ final class QQMusicAuth: ObservableObject {
 
     /// Cookie 是否包含有效登录态（uin 非空且带任一有效凭证）
     func hasValidLogin(_ dict: [String: String]) -> Bool {
-        guard let uin = dict["uin"], !uin.isEmpty, uin != "0" else { return false }
-        let credentialKeys = ["p_skey", "skey", "qqmusic_key", "qm_keyst", "music_key", "wxskey", "musickey", "p_uin"]
+        let normalized = Self.normalizeLoginCookies(dict)
+        guard let uin = normalized["uin"], !uin.isEmpty, uin != "0" else { return false }
+        let credentialKeys = [
+            "p_skey", "skey", "qqmusic_key", "qm_keyst", "music_key", "wxskey", "musickey", "p_uin",
+            "wxrefresh_token", "wx_access_token", "wxsession", "wxlogin_token"
+        ]
         return credentialKeys.contains { key in
-            guard let value = dict[key] else { return false }
+            guard let value = normalized[key] else { return false }
             return !value.isEmpty
         }
+    }
+
+    /// 统一 QQ 号与微信网页登录下发的身份字段。
+    static func normalizeLoginCookies(_ dict: [String: String]) -> [String: String] {
+        var normalized = dict
+        if normalized["uin"]?.isEmpty != false || normalized["uin"] == "0" {
+            for key in ["musicid", "pt2gguin", "pt4gguin", "qqmusic_uin", "p_uin", "wxuin"] {
+                if let value = normalized[key], !value.isEmpty, value != "0" {
+                    normalized["uin"] = value
+                    break
+                }
+            }
+        }
+        return normalized
     }
 
     /// 网页登录关注的 Cookie 名（WKWebView 读取时按此过滤）
     static let webCookieNames: Set<String> = [
         "uin", "p_uin", "skey", "p_skey", "qqmusic_key", "qm_keyst", "music_key", "wxskey",
-        "musickey", "pt4_token", "pt2gguin", "pt_login_sig", "pt4_aid",
+        "musickey", "pt4_token", "pt2gguin", "pt4gguin", "pt_login_sig", "pt4_aid",
         "qmusic_s", "pgv_pvid", "pgv_info", "ptnick", "nick", "nickname",
+        "wxuin", "wxopenid", "wxrefresh_token", "wx_access_token", "wxsession", "wxlogin_token",
+        "wxnick", "wx_nick", "wxunionid", "wx_unionid", "musicid", "qqmusic_uin",
     ]
 
     /// 解析浏览器复制出来的完整 Cookie 字符串："a=b; c=d"
@@ -136,6 +161,9 @@ final class QQMusicAuth: ObservableObject {
             return raw.removingPercentEncoding ?? raw
         }
         if let nick = dict["nick"], !nick.isEmpty { return nick }
+        for key in ["wxnick", "wx_nick", "nickname"] {
+            if let nick = dict[key], !nick.isEmpty { return nick.removingPercentEncoding ?? nick }
+        }
         let clean = (dict["uin"] ?? "").replacingOccurrences(of: "o", with: "")
         return clean.isEmpty ? "QQ音乐用户" : "QQ音乐用户 \(clean)"
     }

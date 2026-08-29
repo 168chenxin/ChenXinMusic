@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - 首次使用引导页（分页引导 + 免责确认）
 
-/// 首次进入 App 时的引导式提示：欢迎 → DIY 美化 → 三平台 → 免责确认。
+/// 首次进入 App 时的引导式提示：欢迎 → DIY 美化 → 四平台 → 免责确认。
 /// 免责确认沿用原硬性要求：必须输入「我已了解并同意继续使用」才能进入软件。
 struct OnboardingView: View {
     let onFinish: () -> Void
@@ -167,7 +167,7 @@ struct OnboardingView: View {
                 .font(BeansFont.appFont(30, .bold))
                 .foregroundStyle(Color.beansLabel)
 
-            Text("iOS 26 原生液态玻璃 · 聚合网易云 / QQ / 酷狗\n纯 SwiftUI · 完全开源")
+                Text("iOS 26 原生液态玻璃 · 聚合网易云 / QQ / 酷狗 / 汽水\n纯 SwiftUI · 完全开源")
                 .font(BeansFont.appFont(15))
                 .foregroundStyle(Color.beansSecondary)
                 .multilineTextAlignment(.center)
@@ -250,7 +250,7 @@ struct OnboardingView: View {
         .beansCardShadow(radius: 8, y: 3)
     }
 
-    // MARK: 第 3 页 · 三平台
+    // MARK: 第 3 页 · 四平台
 
     private var platformPage: some View {
         VStack(spacing: 20) {
@@ -259,11 +259,11 @@ struct OnboardingView: View {
                 .font(.system(size: 40))
                 .foregroundStyle(LinearGradient.beansAccent)
 
-            Text("三平台聚合，一个 App 全听遍")
+            Text("四平台聚合，一个 App 全听遍")
                 .font(BeansFont.appFont(26, .bold))
                 .foregroundStyle(Color.beansLabel)
 
-            Text("网易云 + QQ 音乐 + 酷狗歌单同步")
+            Text("网易云 + QQ 音乐 + 酷狗 + 汽水歌单同步")
                 .font(BeansFont.appFont(14))
                 .foregroundStyle(Color.beansSecondary)
 
@@ -277,6 +277,9 @@ struct OnboardingView: View {
                 platformRow(imageName: "BrandKugou", tint: Color(red: 0.12, green: 0.55, blue: 1.0),
                             title: "酷狗音乐",
                             detail: "登录同步云端歌单，并支持酷狗歌曲搜索")
+                platformRow(imageName: "BrandSoda", tint: Color(red: 0.12, green: 0.47, blue: 0.98),
+                            title: "汽水音乐",
+                            detail: "登录同步汽水歌单，并支持汽水歌曲搜索")
             }
             .padding(.horizontal, 28)
 

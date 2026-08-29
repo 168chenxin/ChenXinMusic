@@ -313,6 +313,8 @@ struct LocalSearchAddSheet: View {
                     songs = try await QQMusicAPI.shared.searchSongs(keyword: trimmed)
                 case .kugou:
                     songs = try await KugouMusicAPI.shared.searchSongs(keyword: trimmed)
+                case .soda:
+                    songs = try await SodaAuth.shared.searchSongs(keyword: trimmed)
                 }
                 guard !Task.isCancelled else { return }
                 results = songs

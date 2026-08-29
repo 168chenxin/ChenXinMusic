@@ -1,9 +1,25 @@
 import Foundation
 
-/// 内置第三方解锁源。
-/// kind：paid-lx、paid-cr、paid-qt 分别对应三种插件运行时格式。
-/// template：请求 URL 模板，支持 {id}、{source}、{quality} 占位符。
-/// headers：可选的请求头与内置元数据。
+private struct FlexibleString: Decodable {
+    let value: String
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let value = try? container.decode(String.self) {
+            self.value = value
+        } else if let value = try? container.decode(Int.self) {
+            self.value = String(value)
+        } else if let value = try? container.decode(Double.self) {
+            self.value = String(value)
+        } else if let value = try? container.decode(Bool.self) {
+            self.value = String(value)
+        } else {
+            throw DecodingError.typeMismatch(String.self, .init(codingPath: decoder.codingPath, debugDescription: "Expected a scalar value"))
+        }
+    }
+}
+
+/// 第三方解锁源。支持内置预设与用户导入的 JSON / 落雪 API 源。
 struct ThirdPartySource: Identifiable, Codable, Hashable, Sendable {
     var id = UUID().uuidString
     var name: String
@@ -15,7 +31,8 @@ struct ThirdPartySource: Identifiable, Codable, Hashable, Sendable {
     var isPreset: Bool = false
 
     enum CodingKeys: String, CodingKey {
-        case id, name, kind, template, urlPath, headers, enabled, isPreset
+        case id, name, title, kind, type, mode, template, url, api, endpoint, baseURL, baseUrl
+        case urlPath, path, responsePath, resultPath, headers, enabled, isPreset
     }
 
     init(
@@ -41,26 +58,74 @@ struct ThirdPartySource: Identifiable, Codable, Hashable, Sendable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
-        name = try container.decodeIfPresent(String.self, forKey: .name) ?? "未命名音源"
-        kind = try container.decodeIfPresent(String.self, forKey: .kind) ?? "keyword"
-        template = try container.decodeIfPresent(String.self, forKey: .template) ?? ""
-        urlPath = try container.decodeIfPresent(String.self, forKey: .urlPath) ?? "url"
-        headers = try container.decodeIfPresent([String: String].self, forKey: .headers) ?? [:]
+        name = (try container.decodeIfPresent(String.self, forKey: .name))
+            ?? (try container.decodeIfPresent(String.self, forKey: .title))
+            ?? "未命名音源"
+        kind = (try container.decodeIfPresent(String.self, forKey: .kind))
+            ?? (try container.decodeIfPresent(String.self, forKey: .type))
+            ?? (try container.decodeIfPresent(String.self, forKey: .mode))
+            ?? "keyword"
+        template = (try container.decodeIfPresent(String.self, forKey: .template))
+            ?? (try container.decodeIfPresent(String.self, forKey: .url))
+            ?? (try container.decodeIfPresent(String.self, forKey: .api))
+            ?? (try container.decodeIfPresent(String.self, forKey: .endpoint))
+            ?? (try container.decodeIfPresent(String.self, forKey: .baseURL))
+            ?? (try container.decodeIfPresent(String.self, forKey: .baseUrl))
+            ?? ""
+        urlPath = (try container.decodeIfPresent(String.self, forKey: .urlPath))
+            ?? (try container.decodeIfPresent(String.self, forKey: .path))
+            ?? (try container.decodeIfPresent(String.self, forKey: .responsePath))
+            ?? (try container.decodeIfPresent(String.self, forKey: .resultPath))
+            ?? "url"
+        if let decoded = try? container.decode([String: String].self, forKey: .headers) {
+            headers = decoded
+        } else if let decoded = try? container.decode([String: FlexibleString].self, forKey: .headers) {
+            headers = decoded.mapValues(\.value)
+        } else {
+            headers = [:]
+        }
         enabled = try container.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
         isPreset = try container.decodeIfPresent(Bool.self, forKey: .isPreset) ?? false
     }
 }
 
-/// 内置音源管理：首次启动时写入三种插件格式对应的预设。
+/// 用户导入的落雪 LX JavaScript 音源。
+struct LxScriptSource: Identifiable, Codable, Hashable, Sendable {
+    var id = UUID().uuidString
+    var name: String
+    var script: String
+
+    init(id: String = UUID().uuidString, name: String, script: String) {
+        self.id = id
+        self.name = name
+        self.script = script
+    }
+}
+
 final class UnblockSourceStore: ObservableObject {
     static let shared = UnblockSourceStore()
+
+    static let guoyuePresetSources: [ThirdPartySource] = [
+        ThirdPartySource(
+            name: "guoyue2010 · QQ 稳定源",
+            kind: "template-api",
+            template: "https://cyapi.top/API/qq_music.php?apikey=1ffdf5733f5d538760e63d7e46ba17438d9f7b9dfc18c51be1109386fd74c3a1&type=json&mid={id}",
+            urlPath: "url",
+            headers: ["source": "tx"]
+        ),
+        ThirdPartySource(
+            name: "guoyue2010 · 网易云统一源",
+            kind: "template-api",
+            template: "https://music-api.gdstudio.xyz/api.php?types=url&source=netease&id={id}&br=999",
+            urlPath: "url",
+            headers: ["source": "wy"]
+        ),
+    ]
 
     private static let paidAPIURL = "https://source.shiqianjiang.cn/api/music"
     private static let paidAPIKey = "CERU_KEY-51440644-C9AD-4E10-B593-258FF59CF259"
     private static let paidURLTemplate = "\(paidAPIURL)/url?source={source}&songId={id}&quality={quality}"
 
-    /// 来自用户提供的三个脚本：LX、CeruMusic CR、CeruMusic QT。
-    /// 三个脚本最终调用同一个 API，播放时会按请求指纹去重，避免同一首歌重复请求三次。
     static let paidPresetSources: [ThirdPartySource] = [
         ThirdPartySource(
             id: "beans.preset.shiqianjiang.lx.v7",
@@ -89,37 +154,82 @@ final class UnblockSourceStore: ObservableObject {
     ]
 
     @Published var presetSources: [ThirdPartySource] {
-        didSet { save() }
+        didSet { savePresets() }
+    }
+
+    @Published var customSources: [ThirdPartySource] {
+        didSet { saveCustomSources() }
+    }
+
+    @Published var lxScripts: [LxScriptSource] {
+        didSet { saveLxScripts() }
     }
 
     private let defaults = UserDefaults.standard
     private let presetsKey = "beans.unblock.presets"
-    private let legacyCustomKey = "beans.unblock.custom"
-    private let legacyLXKey = "beans.unblock.lxScripts"
+    private let customKey = "beans.unblock.custom"
+    private let lxScriptsKey = "beans.unblock.lxScripts"
 
     private init() {
-        let savedSources: [ThirdPartySource]
-        if let data = defaults.data(forKey: presetsKey),
-           let list = try? JSONDecoder().decode([ThirdPartySource].self, from: data) {
-            savedSources = list
-        } else if let data = defaults.data(forKey: legacyCustomKey),
-                  let list = try? JSONDecoder().decode([ThirdPartySource].self, from: data) {
-            savedSources = list
+        let storedPresets = Self.loadSources(defaults.data(forKey: presetsKey))
+        let storedCustom = Self.loadSources(defaults.data(forKey: customKey))
+        presetSources = Self.seedPaidPresets(into: storedPresets.filter(\.isPreset))
+        customSources = (storedCustom.isEmpty ? storedPresets : storedCustom).filter { !$0.isPreset }
+        if let data = defaults.data(forKey: lxScriptsKey),
+           let saved = try? JSONDecoder().decode([LxScriptSource].self, from: data) {
+            lxScripts = saved
         } else {
-            savedSources = []
+            lxScripts = []
         }
-
-        // 旧版本的导入源和旧版 guoyue 预设不再参与播放，避免导入脚本继续触发网络请求。
-        let existingPresets = savedSources.filter { $0.isPreset }
-        presetSources = Self.seedPaidPresets(into: existingPresets)
-        defaults.removeObject(forKey: legacyCustomKey)
-        defaults.removeObject(forKey: legacyLXKey)
-        save()
+        savePresets()
+        saveCustomSources()
     }
 
-    private func save() {
+    func add(_ source: ThirdPartySource) {
+        if let index = customSources.firstIndex(where: {
+            $0.kind == source.kind && $0.template == source.template && $0.headers["source"] == source.headers["source"]
+        }) {
+            var updated = source
+            updated.id = customSources[index].id
+            customSources[index] = updated
+        } else {
+            customSources.insert(source, at: 0)
+        }
+    }
+
+    func remove(_ source: ThirdPartySource) {
+        customSources.removeAll { $0.id == source.id }
+    }
+
+    func addLxScript(_ source: LxScriptSource) {
+        lxScripts.removeAll { $0.name == source.name }
+        lxScripts.append(source)
+    }
+
+    func removeLxScript(_ source: LxScriptSource) {
+        lxScripts.removeAll { $0.id == source.id }
+    }
+
+    private static func loadSources(_ data: Data?) -> [ThirdPartySource] {
+        guard let data else { return [] }
+        return (try? JSONDecoder().decode([ThirdPartySource].self, from: data)) ?? []
+    }
+
+    private func savePresets() {
         if let data = try? JSONEncoder().encode(presetSources) {
             defaults.set(data, forKey: presetsKey)
+        }
+    }
+
+    private func saveCustomSources() {
+        if let data = try? JSONEncoder().encode(customSources) {
+            defaults.set(data, forKey: customKey)
+        }
+    }
+
+    private func saveLxScripts() {
+        if let data = try? JSONEncoder().encode(lxScripts) {
+            defaults.set(data, forKey: lxScriptsKey)
         }
     }
 

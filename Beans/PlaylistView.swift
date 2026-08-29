@@ -160,6 +160,8 @@ struct PlaylistView: View {
                 tracks = try await KugouMusicAPI.shared.playlistSongs(listID: playlist.id)
             } else if playlist.source == .qq {
                 tracks = try await QQMusicAPI.shared.playlistSongs(listID: playlist.id)
+            } else if playlist.source == .soda {
+                tracks = try await SodaAuth.shared.fetchPlaylistTracks(playlistID: playlist.rawID ?? "\(playlist.id)")
             } else {
                 tracks = try await NetEaseAPI.shared.playlistTracks(id: playlist.id)
             }

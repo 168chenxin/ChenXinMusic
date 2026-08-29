@@ -50,6 +50,8 @@ struct CommentsSheet: View {
                         kugouCommentList
                     } else if song.source == .qq {
                         qqCommentList
+                    } else if song.source == .soda {
+                        EmptyStateView(icon: "bubble.left", text: "汽水音乐暂不支持评论")
                     } else if let page {
                         if page.hot.isEmpty && page.comments.isEmpty {
                             EmptyStateView(icon: "bubble.left", text: "暂无评论")
@@ -144,6 +146,9 @@ struct CommentsSheet: View {
                     qqComments.append(contentsOf: result.comments)
                 }
                 qqTotal = result.total
+            } else if song.source == .soda {
+                loading = false
+                return
             } else {
                 let result = try await NetEaseAPI.shared.songComments(id: song.id, limit: limit, offset: offset)
                 if reset {

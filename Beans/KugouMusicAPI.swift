@@ -244,7 +244,7 @@ final class KugouMusicAPI {
         guard let data = json["data"] as? [String: Any],
               let groups = data["lists"] as? [[String: Any]],
               let songGroup = groups.first(where: {
-                  let type = Self.string($0["type"]).lowercased()
+                  let type = KugouMusicAPI.string($0["type"]).lowercased()
                   return type == "song" || type == "songs"
               }),
               let rows = songGroup["lists"] as? [[String: Any]] else {
@@ -316,7 +316,7 @@ final class KugouMusicAPI {
             return KugouTopInfo(
                 id: id,
                 name: name,
-                updateFrequency: Self.string(item["update_frequency"] ?? item["updateFrequency"]),
+                updateFrequency: KugouMusicAPI.string(item["update_frequency"] ?? item["updateFrequency"]),
                 coverURL: URL(string: cover)
             )
         }

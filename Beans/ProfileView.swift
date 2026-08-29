@@ -41,6 +41,7 @@ struct ProfileView: View {
     @State private var didRefreshProfileAccount = false
     @ObservedObject private var qqAuth = QQMusicAuth.shared
     @ObservedObject private var kugouAuth = KugouMusicAuth.shared
+    @ObservedObject private var sodaAuth = SodaAuth.shared
     @ObservedObject private var platformPrefs = PlatformPreferenceStore.shared
 
     private var themeMode: BeansThemeMode {
@@ -68,6 +69,9 @@ struct ProfileView: View {
         if platformPrefs.isEnabled(SearchProvider.kugou), kugouAuth.isLoggedIn {
             parts.append(kugouAuth.nickname.isEmpty ? "酷狗已登录" : kugouAuth.nickname)
         }
+        if platformPrefs.isEnabled(SearchProvider.soda), sodaAuth.isLoggedIn {
+            parts.append(sodaAuth.nickname.isEmpty ? "汽水已登录" : sodaAuth.nickname)
+        }
         if parts.isEmpty { return "登录后可同步 \(platformPrefs.summaryText) 歌单" }
         return parts.joined(separator: " · ")
     }
@@ -76,6 +80,7 @@ struct ProfileView: View {
         (platformPrefs.isEnabled(SearchProvider.netease) && auth.isLoggedIn)
             || (platformPrefs.isEnabled(SearchProvider.qq) && qqAuth.isLoggedIn)
             || (platformPrefs.isEnabled(SearchProvider.kugou) && kugouAuth.isLoggedIn)
+            || (platformPrefs.isEnabled(SearchProvider.soda) && sodaAuth.isLoggedIn)
     }
 
     /// 顶部标题 + 右上角设置齿轮
@@ -304,7 +309,8 @@ struct ProfileView: View {
 
             if (platformPrefs.isEnabled(SearchProvider.netease) && auth.isLoggedIn)
                 || (platformPrefs.isEnabled(SearchProvider.qq) && qqAuth.isLoggedIn)
-                || (platformPrefs.isEnabled(SearchProvider.kugou) && kugouAuth.isLoggedIn) {
+                || (platformPrefs.isEnabled(SearchProvider.kugou) && kugouAuth.isLoggedIn)
+                || (platformPrefs.isEnabled(SearchProvider.soda) && sodaAuth.isLoggedIn) {
                 platformStatusRow
             }
         }
@@ -326,6 +332,9 @@ struct ProfileView: View {
             }
             if platformPrefs.isEnabled(SearchProvider.kugou), kugouAuth.isLoggedIn {
                 platformChip(imageName: "BrandKugou", name: "酷狗音乐", status: kugouAuth.nickname.isEmpty ? "已登录" : kugouAuth.nickname, badge: kugouAuth.vipBadge)
+            }
+            if platformPrefs.isEnabled(SearchProvider.soda), sodaAuth.isLoggedIn {
+                platformChip(imageName: "BrandSoda", name: "汽水音乐", status: sodaAuth.nickname.isEmpty ? "已登录" : sodaAuth.nickname, badge: sodaAuth.vipBadge)
             }
         }
         .padding(.top, 2)
@@ -766,9 +775,12 @@ struct AccountHubSheet: View {
     @State private var showNeteaseLogin = false
     @State private var showQQLogin = false
     @State private var showKugouLogin = false
+    @State private var showSodaLogin = false
     @State private var confirmNeteaseLogout = false
     @State private var confirmQQLogout = false
     @State private var confirmKugouLogout = false
+    @State private var confirmSodaLogout = false
+    @ObservedObject private var sodaAuth = SodaAuth.shared
 
     var body: some View {
         BeansNavigationStack {
@@ -780,6 +792,7 @@ struct AccountHubSheet: View {
                         if platformPrefs.isEnabled(SearchProvider.netease) { neteaseCard }
                         if platformPrefs.isEnabled(SearchProvider.qq) { qqCard }
                         if platformPrefs.isEnabled(SearchProvider.kugou) { kugouCard }
+                        if platformPrefs.isEnabled(SearchProvider.soda) { sodaCard }
                         Text("\(platformPrefs.summaryText) 登录后可同步歌单并提升可播成功率")
                             .font(BeansFont.appFont(11))
                             .foregroundStyle(Color.beansComment)
@@ -810,6 +823,10 @@ struct AccountHubSheet: View {
             KugouLoginSheet()
                 .environmentObject(theme)
         }
+        .sheet(isPresented: $showSodaLogin) {
+            SodaLoginSheet()
+                .environmentObject(theme)
+        }
         .confirmationDialog("退出网易云登录？", isPresented: $confirmNeteaseLogout, titleVisibility: .visible) {
             Button("退出登录", role: .destructive) {
                 auth.logout()
@@ -831,6 +848,13 @@ struct AccountHubSheet: View {
                 kugouAuth.logout()
                 WebLoginDataCleaner.clearKugou()
                 ToastCenter.shared.show("已退出酷狗音乐")
+            }
+            Button("取消", role: .cancel) {}
+        }
+        .confirmationDialog("退出汽水音乐？", isPresented: $confirmSodaLogout, titleVisibility: .visible) {
+            Button("退出登录", role: .destructive) {
+                sodaAuth.logout()
+                ToastCenter.shared.show("已退出汽水音乐")
             }
             Button("取消", role: .cancel) {}
         }
@@ -975,6 +999,46 @@ struct AccountHubSheet: View {
         .buttonStyle(GlassPressButtonStyle(scale: 0.97))
     }
 
+    private var sodaCard: some View {
+        Button {
+            BeansHaptics.tap()
+            if sodaAuth.isLoggedIn { confirmSodaLogout = true } else { showSodaLogin = true }
+        } label: {
+            HStack(spacing: 14) {
+                Image("BrandSoda")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 48, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("汽水音乐")
+                        .font(BeansFont.appFont(15, .semibold))
+                        .foregroundStyle(Color.beansLabel)
+                    HStack(spacing: 6) {
+                        Text(sodaAuth.isLoggedIn ? (sodaAuth.nickname.isEmpty ? "已登录" : sodaAuth.nickname) : "未登录 · 扫码或粘贴 Cookie 登录")
+                            .font(BeansFont.appFont(12))
+                            .foregroundStyle(Color.beansComment)
+                            .lineLimit(1)
+                        if sodaAuth.isLoggedIn, let badge = sodaAuth.vipBadge {
+                            VIPBadgeView(text: badge)
+                        }
+                    }
+                }
+                Spacer()
+                Text(sodaAuth.isLoggedIn ? "退出" : "登录")
+                    .font(BeansFont.appFont(13, .medium))
+                    .foregroundStyle(sodaAuth.isLoggedIn ? Color.red : Color.beansAmber)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
+                    .background(.ultraThinMaterial, in: Capsule())
+            }
+            .padding(14)
+            .background { BeansGlass(shape: RoundedRectangle(cornerRadius: 20, style: .continuous)) }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(GlassPressButtonStyle(scale: 0.97))
+    }
+
 }
 
 // MARK: - 设置页（外观 + 歌词翻译，从「我的」右上角齿轮进入）
@@ -999,8 +1063,8 @@ struct SettingsView: View {
     @AppStorage("beans.enableHighRefresh") private var enableHighRefresh = true
     @AppStorage("beans.audio.mixothers.v1") private var mixesWithOthers = false
     @AppStorage("beans.labelColorHex") private var labelColorHex = ""
-    @ObservedObject private var sourceStore = UnblockSourceStore.shared
     @ObservedObject private var platformPrefs = PlatformPreferenceStore.shared
+    @ObservedObject private var sourceStore = UnblockSourceStore.shared
 
     @State private var appearanceExpanded = false
     @State private var platformExpanded = false
@@ -1021,6 +1085,7 @@ struct SettingsView: View {
     @State private var backupMessage: String?
     /// 日志
     @State private var showLogViewer = false
+    @State private var showSourceImporter = false
     @State private var showUsageGuide = false
 
     private var themeMode: BeansThemeMode {
@@ -1075,6 +1140,10 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showChangelog) {
             ChangelogListView()
+        }
+        .sheet(isPresented: $showSourceImporter) {
+            ThirdPartySourceImportSheet()
+                .environmentObject(theme)
         }
         .sheet(isPresented: $showUsageGuide) {
             UsageGuideSheet()
@@ -1731,6 +1800,7 @@ struct SettingsView: View {
                             .tint(Color.beansAmber)
                     }
                 }
+                ImportedSourceControls(showImporter: $showSourceImporter)
 
             }
             .padding(16)
@@ -2265,6 +2335,107 @@ struct SettingsView: View {
             .buttonStyle(.plain)
             .zIndex(2)
         }
+    }
+}
+
+/// 仅在展开“播放设置”后创建，避免打开设置页时解码导入的 LX 脚本。
+private struct ImportedSourceControls: View {
+    @Binding var showImporter: Bool
+    @ObservedObject private var sourceStore = UnblockSourceStore.shared
+
+    private var sourceCount: Int {
+        sourceStore.customSources.count + sourceStore.lxScripts.count
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Button {
+                BeansHaptics.tap()
+                showImporter = true
+            } label: {
+                Label("导入音源", systemImage: "square.and.arrow.down")
+                    .font(BeansFont.appFont(13, .semibold))
+                    .foregroundStyle(Color.beansAmber)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(.ultraThinMaterial, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            Spacer()
+            Text(sourceCount == 0 ? "尚未导入" : "\(sourceCount) 个")
+                .font(BeansFont.appFont(12))
+                .foregroundStyle(Color.beansComment)
+        }
+
+        ForEach(sourceStore.customSources) { source in
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(source.name)
+                        .font(BeansFont.appFont(13, .medium))
+                        .foregroundStyle(Color.beansLabel)
+                        .lineLimit(1)
+                    Text(source.headers["source"]?.uppercased() ?? source.kind)
+                        .font(BeansFont.appFont(10))
+                        .foregroundStyle(Color.beansComment)
+                }
+                Spacer()
+                Toggle("", isOn: sourceEnabledBinding(source.id))
+                    .labelsHidden()
+                    .tint(Color.beansAmber)
+                Button {
+                    sourceStore.remove(source)
+                    BeansHaptics.tap()
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.red)
+                        .frame(width: 30, height: 30)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("删除音源")
+            }
+        }
+
+        ForEach(sourceStore.lxScripts) { source in
+            HStack(spacing: 10) {
+                Image(systemName: "curlybraces.square.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.beansAmber)
+                    .frame(width: 28, height: 28)
+                    .background(Color.beansGlassFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(source.name)
+                        .font(BeansFont.appFont(13, .medium))
+                        .foregroundStyle(Color.beansLabel)
+                        .lineLimit(1)
+                    Text("LX JavaScript 音源")
+                        .font(BeansFont.appFont(10))
+                        .foregroundStyle(Color.beansComment)
+                }
+                Spacer()
+                Button {
+                    sourceStore.removeLxScript(source)
+                    BeansHaptics.tap()
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.red)
+                        .frame(width: 30, height: 30)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("删除 LX 音源")
+            }
+        }
+    }
+
+    private func sourceEnabledBinding(_ id: String) -> Binding<Bool> {
+        Binding(
+            get: { sourceStore.customSources.first(where: { $0.id == id })?.enabled ?? false },
+            set: { value in
+                guard let index = sourceStore.customSources.firstIndex(where: { $0.id == id }) else { return }
+                sourceStore.customSources[index].enabled = value
+            }
+        )
     }
 }
 

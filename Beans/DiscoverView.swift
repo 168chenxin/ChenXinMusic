@@ -129,6 +129,11 @@ struct DiscoverView: View {
                 guard platformPrefs.isEnabled(SearchProvider.kugou) else { return }
                 reloadAfterLoginUpdate(.kugou)
             }
+            .onReceive(NotificationCenter.default.publisher(for: .beansSodaLoginDidUpdate)) { _ in
+                guard platformPrefs.isEnabled(SearchProvider.soda) else { return }
+                homeSourceRaw = SearchProvider.soda.rawValue
+                Task { await load(force: true) }
+            }
             .sheet(item: $selectedTopList) { topList in
                 TopListDetailView(topList: topList)
                     .environmentObject(player)
@@ -283,6 +288,7 @@ struct DiscoverView: View {
         case .netease: return neteaseTopLists.count
         case .qq: return qqTopLists.count
         case .kugou: return kugouTopLists.count
+        case .soda: return 0
         }
     }
 
@@ -296,6 +302,7 @@ struct DiscoverView: View {
         case .netease: return !topLists.isEmpty
         case .qq: return !qqTopLists.isEmpty
         case .kugou: return !kugouTopLists.isEmpty
+        case .soda: return false
         }
     }
 
@@ -697,6 +704,8 @@ struct DiscoverView: View {
             snapshot.dailySongs = daily
             snapshot.kugouTopLists = top
             snapshot.personalized = pp
+        case .soda:
+            break
         }
         return snapshot
     }

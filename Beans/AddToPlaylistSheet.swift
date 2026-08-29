@@ -75,6 +75,10 @@ struct AddToPlaylistSheet: View {
     }
 
     private func add(to playlist: Playlist) async {
+        guard song.source != .soda else {
+            message = "汽水音乐暂不支持添加到网易云歌单"
+            return
+        }
         let ok = (try? await NetEaseAPI.shared.addToPlaylist(playlistID: playlist.id, songIDs: [song.id])) ?? false
         if ok {
             dismiss()
@@ -84,6 +88,10 @@ struct AddToPlaylistSheet: View {
     }
 
     private func createAndAdd() async {
+        guard song.source != .soda else {
+            message = "汽水音乐暂不支持添加到网易云歌单"
+            return
+        }
         let name = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
         do {

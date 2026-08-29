@@ -4,6 +4,7 @@ enum LibraryProvider: String, CaseIterable, Identifiable {
     case netease = "网易云"
     case qq = "QQ音乐"
     case kugou = "酷狗"
+    case soda = "汽水音乐"
 
     var id: String { rawValue }
 
@@ -15,6 +16,8 @@ enum LibraryProvider: String, CaseIterable, Identifiable {
             return LinearGradient(colors: [Color(red: 0.15, green: 0.78, blue: 0.55), Color(red: 0.05, green: 0.58, blue: 0.42)], startPoint: .topLeading, endPoint: .bottomTrailing)
         case .kugou:
             return LinearGradient(colors: [Color(red: 0.12, green: 0.58, blue: 0.95), Color(red: 0.02, green: 0.32, blue: 0.72)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .soda:
+            return LinearGradient(colors: [Color(red: 0.12, green: 0.47, blue: 0.98), Color(red: 0.05, green: 0.24, blue: 0.75)], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
     }
 
@@ -23,6 +26,7 @@ enum LibraryProvider: String, CaseIterable, Identifiable {
         case .netease: return "cloud.fill"
         case .qq: return "play.rectangle.fill"
         case .kugou: return "music.note"
+        case .soda: return "music.note.list"
         }
     }
 
@@ -31,6 +35,7 @@ enum LibraryProvider: String, CaseIterable, Identifiable {
         case .netease: return "BrandNetease"
         case .qq: return "BrandQQ"
         case .kugou: return "BrandKugou"
+        case .soda: return "BrandSoda"
         }
     }
 }
@@ -42,6 +47,7 @@ struct LibraryView: View {
     @EnvironmentObject private var favorites: FavoritesStore
     @ObservedObject private var qqAuth = QQMusicAuth.shared
     @ObservedObject private var kugouAuth = KugouMusicAuth.shared
+    @ObservedObject private var sodaAuth = SodaAuth.shared
     @ObservedObject private var platformPrefs = PlatformPreferenceStore.shared
 
     @State private var showHistory = false
@@ -60,6 +66,9 @@ struct LibraryView: View {
     @State private var kugouPlaylists: [Playlist] = []
     @State private var kugouLoading = false
     @State private var kugouSavedAt = Date.distantPast
+    @State private var sodaPlaylists: [Playlist] = []
+    @State private var sodaLoading = false
+    @State private var sodaSavedAt = Date.distantPast
     private var libraryProviders: [LibraryProvider] { platformPrefs.enabledLibraryProviders }
 
     var body: some View {
@@ -83,6 +92,7 @@ struct LibraryView: View {
                             case .netease: playlistsSection
                             case .qq: qqSection
                             case .kugou: kugouSection
+                            case .soda: sodaSection
                             }
                         case "最近播放":
                             historySection
@@ -127,6 +137,11 @@ struct LibraryView: View {
             guard platformPrefs.isEnabled(SearchProvider.kugou) else { return }
             source = .kugou
             Task { await loadKugouPlaylists(force: true) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .beansSodaLoginDidUpdate)) { _ in
+            guard platformPrefs.isEnabled(SearchProvider.soda) else { return }
+            source = .soda
+            Task { await loadSodaPlaylists(force: true) }
         }
         .sheet(isPresented: $showHistory) {
             HistoryView()
@@ -187,6 +202,7 @@ struct LibraryView: View {
         case .netease: return "网易云歌单"
         case .qq: return "QQ 音乐收藏与歌单"
         case .kugou: return "酷狗云端歌单"
+        case .soda: return "汽水音乐歌单"
         }
     }
 
@@ -384,6 +400,8 @@ struct LibraryView: View {
             await loadQQPlaylists(force: force)
         case .kugou:
             await loadKugouPlaylists(force: force)
+        case .soda:
+            await loadSodaPlaylists(force: force)
         }
     }
 
@@ -398,6 +416,12 @@ struct LibraryView: View {
     private var kugouSection: some View {
         VStack(alignment: .leading, spacing: 24) {
             kugouPlaylistsSection
+        }
+    }
+
+    private var sodaSection: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            sodaPlaylistsSection
         }
     }
 
@@ -514,6 +538,51 @@ struct LibraryView: View {
         }
     }
 
+    private var sodaPlaylistsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "我的汽水歌单", trailing: sodaAuth.isLoggedIn ? "\(sodaPlaylists.count) 个" : nil)
+            if !sodaAuth.isLoggedIn {
+                EmptyStateView(icon: "music.note.list", text: "登录汽水音乐后即可同步歌单")
+            } else if sodaLoading {
+                LoadingStateView()
+            } else if sodaPlaylists.isEmpty {
+                EmptyStateView(icon: "music.note.list", text: "暂未同步到汽水歌单，下拉刷新试试")
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(sodaPlaylists) { playlist in
+                        Button { selectedPlaylist = playlist } label: {
+                            HStack(spacing: 12) {
+                                CoverImage(url: playlist.coverURL, size: 56, cornerRadius: 12)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(playlist.name)
+                                        .font(BeansFont.appFont(15, .medium))
+                                        .foregroundStyle(Color.beansLabel)
+                                        .lineLimit(1)
+                                    Text("\(playlist.trackCount) 首")
+                                        .font(BeansFont.appFont(12))
+                                        .foregroundStyle(Color.beansComment)
+                                }
+                                Spacer(minLength: 8)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(Color.beansComment.opacity(0.6))
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        Divider().overlay(Color.beansComment.opacity(0.12))
+                    }
+                }
+                .padding(.vertical, 6)
+                .background { BeansGlass(shape: RoundedRectangle(cornerRadius: 22, style: .continuous)) }
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .beansCardShadow(radius: 8, y: 3)
+            }
+        }
+    }
+
     // MARK: - 歌单新建 / 删除
 
     private func loadQQPlaylists(force: Bool = false) async {
@@ -550,6 +619,24 @@ struct LibraryView: View {
             kugouPlaylists = []
         }
         kugouLoading = false
+    }
+
+    private func loadSodaPlaylists(force: Bool = false) async {
+        guard sodaAuth.isLoggedIn else {
+            sodaPlaylists = []
+            sodaLoading = false
+            return
+        }
+        if !force, Date().timeIntervalSince(sodaSavedAt) < 300 { return }
+        sodaLoading = true
+        do {
+            sodaPlaylists = try await sodaAuth.fetchPlaylists()
+            sodaSavedAt = Date()
+        } catch {
+            BeansLogger.shared.log("汽水歌单同步失败：\(error.localizedDescription)", level: .error)
+            sodaPlaylists = []
+        }
+        sodaLoading = false
     }
 
     private func fillQQPlaylistCovers(_ list: [Playlist]) async {
@@ -615,6 +702,8 @@ struct LibraryView: View {
             }
         case .kugou:
             ToastCenter.shared.show("酷狗歌单暂不支持新建")
+        case .soda:
+            ToastCenter.shared.show("汽水歌单暂不支持新建")
         }
     }
 
@@ -656,6 +745,8 @@ struct LibraryView: View {
             }
         case .kugou:
             ToastCenter.shared.show("酷狗歌单暂不支持删除")
+        case .soda:
+            ToastCenter.shared.show("汽水歌单暂不支持删除")
         }
     }
 
