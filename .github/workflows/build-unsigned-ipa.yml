@@ -81,13 +81,13 @@ jobs:
         run: |
           mkdir -p Payload
           cp -R build/Build/Products/Release-iphoneos/Beans.app Payload/
-          ditto -c -k --sequesterRsrc --keepParent Payload Beans-unsigned.ipa
+          ditto -c -k --sequesterRsrc --keepParent Payload ChenXinMusic-unsigned.ipa
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: Beans-unsigned-ipa
-          path: Beans-unsigned.ipa
+          name: ChenXinMusic-unsigned-ipa
+          path: ChenXinMusic-unsigned.ipa
 
       - name: Build release notes from CHANGELOG
         run: |
@@ -97,7 +97,7 @@ jobs:
           content = open('CHANGELOG.md', encoding='utf-8').read()
           m = re.search(r'^##\s+' + re.escape(ver) + r'\s*$([\s\S]*?)(?=^##\s|\Z)', content, re.M)
           body = m.group(1).strip() if m else ('版本 ' + ver + ' 的更新内容。')
-          body = '# Beans Music ' + ver + '\n\n' + body + '\n'
+          body = '# 称心播放器 ' + ver + '\n\n' + body + '\n'
           with open('release_body.md', 'w', encoding='utf-8') as f:
               f.write(body)
           print(body)
@@ -110,9 +110,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ env.VERSION_TAG }}
-          name: Beans Music ${{ env.VERSION_LABEL }}
+          name: 称心播放器 ${{ env.VERSION_LABEL }}
           body_path: release_body.md
-          files: Beans-unsigned.ipa
+          files: ChenXinMusic-unsigned.ipa
           update_release_body: true
           update_release_name: true
           update_release_assets: true

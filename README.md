@@ -1,14 +1,14 @@
-# Beans Music 🎵
+# 称心播放器 🎵
 
-> 一款基于 **iOS 26 原生液态玻璃（Liquid Glass）** 的第三方音乐播放器（兼容 iOS 16+，低版本自动使用系统材质），聚合网易云音乐与 QQ 音乐，纯 SwiftUI 实现。
+> 一款基于 **iOS 26 原生液态玻璃（Liquid Glass）** 的第三方音乐播放器（兼容 iOS 16+，低版本自动使用系统材质），聚合网易云音乐、QQ 音乐、酷狗音乐与汽水音乐，纯 SwiftUI 实现。
 > 本软件完全开源，仅供学习研究使用。
 
-[![GitHub Pages 预览](https://img.shields.io/badge/在线预览-GitHub%20Pages-blue)](https://xiaodou0416.github.io/Beans-Music/)
+[![GitHub Pages 预览](https://img.shields.io/badge/在线预览-GitHub%20Pages-blue)](https://168chenxin.github.io/ChenXinMusic/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-iOS%2016+-orange)]()
 [![Swift](https://img.shields.io/badge/Swift-5-orange)]()
 
-**👀 在线预览（HTML 介绍页）：** https://xiaodou0416.github.io/Beans-Music/
+**👀 在线预览（HTML 介绍页）：** https://168chenxin.github.io/ChenXinMusic/
 
 ## 🧑‍💻 关于作者
 
@@ -80,19 +80,21 @@
 
 ---
 
-## 🚀 双平台聚合，一个 App 听遍网易云 + QQ 音乐
+## 🚀 四平台聚合，一个 App 听遍网易云、QQ、酷狗与汽水音乐
 
-- 网易云 / QQ 音乐一键切换：每日推荐、排行榜、推荐歌单、搜索、热门搜索全部跟随平台
+- 网易云、QQ 音乐、酷狗音乐与汽水音乐一键切换，平台显示可在设置中单独开关
 - 网易云：扫码登录 + 应用内网页登录，同步歌单、收藏、听歌排行与 VIP / SVIP 标识
 - QQ 音乐：扫码授权 + 网页登录 / Cookie 导入，同步歌单与 VIP 标识
-- 双平台歌曲评论区、歌词、歌手主页互通
+- 酷狗音乐：登录后同步云端歌单并支持歌曲搜索与播放
+- 汽水音乐：扫码或 Cookie 登录，同步汽水歌单，支持歌曲搜索与播放；歌手/专辑搜索和部分歌单管理暂不支持
+- 网易云、QQ 音乐、酷狗音乐与汽水音乐的歌曲均可加入播放队列
 
 ## 🎧 播放器：从封面里长出来的界面
 
 - 动态封面取色：背景渐变、进度条、播放按钮、功能按钮、歌词高亮全部实时跟随专辑封面主色，切歌平滑过渡
 - 抖音式上下滑动切歌，过渡动画丝滑；左右滑动也可切换
 - 封面点击切换歌词视图（封面飞入左上角动画）、圆形封面模式 + 自动旋转
-- 底部指示线上滑呼出评论区（网易云 + QQ 评论）
+- 底部指示线上滑呼出评论区（网易云 + QQ 评论；汽水音乐暂不支持评论）
 
 ## ⚡ 播放能力拉满
 
@@ -106,7 +108,7 @@
 ## 📱 系统体验
 
 - iOS 26 原生液态玻璃（Liquid Glass）TabBar，与系统 App 一致
-- 首次进入 4 页引导（欢迎 / DIY 美化 / 双平台 / 免责确认）+ 版本更新说明弹窗 + 更新日志
+- 首次进入 4 页引导（欢迎 / DIY 美化 / 四平台 / 免责确认）+ 版本更新说明弹窗 + 更新日志
 - 软件使用说明、深浅色自适应
 
 ---
@@ -118,7 +120,7 @@ Beans/
 ├── BeansApp.swift                应用入口（首次使用引导页 + 免责确认）
 ├── RootView.swift                底部 Tab 液态玻璃导航 + 迷你播放器
 ├── DiscoverView.swift            发现页（每日推荐 / 排行榜 / 推荐歌单）
-├── SearchView.swift              搜索（网易云 / QQ 切换 / 热搜）
+├── SearchView.swift              搜索（网易云 / QQ / 酷狗 / 汽水切换 / 热搜）
 ├── LibraryView.swift             音乐库（歌单 / 本地音乐库 / 最近播放）
 ├── ProfileView.swift             我的（功能 / 听歌排行 / 使用说明 / 设置）
 ├── PlayerView.swift              播放器（动态取色 / 歌词 / 底部控制 / 设置）
@@ -126,6 +128,8 @@ Beans/
 ├── LoginView.swift               网易云登录（扫码 + 网页登录）
 ├── NetEaseWebLoginSheet.swift    网易云网页登录（WKWebView 读取 Cookie）
 ├── QQMusicAPI.swift / QQMusicAuth.swift / QQWebLoginSheet.swift  QQ 音乐接入
+├── KugouMusicAPI.swift / KugouMusicAuth.swift / KugouLoginSheet.swift  酷狗音乐接入
+├── SodaAuth.swift / SodaLoginSheet.swift  汽水音乐接入
 ├── NetEaseAPI.swift / NetEaseCrypto.swift   网易云接口与加密（weapi / eapi）
 ├── AuthStore.swift / Models.swift   登录态与数据模型
 ├── Theme.swift / CoverPalette.swift   全局主题与封面取色
@@ -140,7 +144,7 @@ Beans/
 
 ## 🔨 构建
 
-GitHub Actions（`Build Unsigned IPA`）自动构建，产物发布到 [Releases](https://github.com/XIaodou0416/Beans-Music/releases)。
+GitHub Actions（`Build Unsigned IPA`）自动构建，产物发布到 [Releases](https://github.com/168chenxin/ChenXinMusic/releases)。
 
 本地构建（需要 Mac + Xcode 26）：
 
@@ -152,7 +156,7 @@ xcodebuild -project Beans.xcodeproj -scheme Beans -configuration Release \
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
 mkdir -p Payload
 cp -R build/Build/Products/Release-iphoneos/Beans.app Payload/
-ditto -c -k --sequesterRsrc --keepParent Payload Beans-unsigned.ipa
+ditto -c -k --sequesterRsrc --keepParent Payload ChenXinMusic-unsigned.ipa
 ```
 
 ## 📲 安装
@@ -170,6 +174,8 @@ ditto -c -k --sequesterRsrc --keepParent Payload Beans-unsigned.ipa
 - 音乐版权归各平台所有，请支持正版；如需下载音频请在各平台官方渠道购买
 - “QQ”、“QQ音乐”及企鹅形象等文字、图形和商业标识，其著作权或商标权归腾讯公司所有
 - “网易云”、“网易云音乐”等文字、图形和商业标识，其著作权或商标权归网易公司所有
+- “酷狗音乐”及其名称、图形和商业标识归酷狗音乐及相关权利方所有
+- “汽水音乐”及其名称、图形和商业标识归汽水音乐及相关权利方所有
 - 具体内容请参考各平台用户协议
 
 ## 📄 License

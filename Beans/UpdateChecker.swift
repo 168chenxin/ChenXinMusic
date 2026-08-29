@@ -5,7 +5,7 @@ import Foundation
 /// 检测 GitHub 最新 Release 并与当前版本比较，发现新版时用于弹窗提示。
 /// 自动检查每次启动一次，手动检查随时可用。
 struct UpdateChecker {
-    static let repoPath = "XIaodou0416/Beans-Music"
+    static let repoPath = "168chenxin/ChenXinMusic"
     static let releasePageURL = URL(string: "https://github.com/\(repoPath)/releases/latest")!
     private static let latestAPI = URL(string: "https://api.github.com/repos/\(repoPath)/releases/latest")!
     private static let suppressedVersionKey = "beans.updateCheck.suppressedVersion"
@@ -28,7 +28,7 @@ struct UpdateChecker {
 
     /// 当前 App 版本号（CFBundleShortVersionString）
     static var currentVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     }
 
     /// 自动检查：每次启动请求一次。用户选择“以后再说”后，才不再提醒当前版本。
@@ -55,7 +55,7 @@ struct UpdateChecker {
     /// 拉取最新 Release（公开仓库无需 Token）
     static func fetchLatest() async throws -> ReleaseInfo {
         var request = URLRequest(url: latestAPI)
-        request.setValue("Beans-Music/\(currentVersion)", forHTTPHeaderField: "User-Agent")
+        request.setValue("ChenXinMusic/\(currentVersion)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {

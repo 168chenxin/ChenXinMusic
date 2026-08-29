@@ -17,7 +17,7 @@ struct ProfileView: View {
 
     @State private var showHistory = false
 
-    /// 统一账号登录面板（网易云 + QQ 音乐整合）
+    /// 统一账号登录面板（网易云、QQ、酷狗、汽水音乐）
     @State private var showAccountHub = false
     /// 设置页（外观 + 歌词翻译等）
     @State private var showSettings = false
@@ -49,8 +49,8 @@ struct ProfileView: View {
     }
 
     private var appVersionText: String {
-        let ver = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2"
-        return "Beans Music · \(ver)"
+        let ver = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+        return "称心播放器 · \(ver)"
     }
 
     /// 登录状态的合并提示（展示各平台真实昵称）
@@ -132,7 +132,6 @@ struct ProfileView: View {
                     }
                     // 更新入口固定放在“我的”页面最底部，避免被板块排序隐藏。
                     updateLinkCard
-                    communityCard
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -321,7 +320,7 @@ struct ProfileView: View {
         .beansCardShadow(radius: 10, y: 4)
     }
 
-    /// 每个登录平台单独展示登录成功状态（网易云 / QQ 音乐）
+    /// 每个登录平台单独展示登录成功状态
     private var platformStatusRow: some View {
         VStack(alignment: .leading, spacing: 8) {
             if platformPrefs.isEnabled(SearchProvider.netease), auth.isLoggedIn {
@@ -503,7 +502,7 @@ struct ProfileView: View {
                 Label(appVersionText, systemImage: "beats.headphones")
                     .font(BeansFont.appFont(14, .semibold))
                     .foregroundStyle(Color.beansLabel)
-                Text("网易云 / QQ音乐 / 酷狗音乐 第三方客户端 · 仅供学习研究")
+                Text("网易云 / QQ 音乐 / 酷狗音乐 / 汽水音乐 第三方客户端 · 仅供学习研究")
                     .font(BeansFont.appFont(12))
                     .foregroundStyle(Color.beansComment)
                     .multilineTextAlignment(.center)
@@ -512,7 +511,7 @@ struct ProfileView: View {
                     .foregroundStyle(Color.beansComment.opacity(0.85))
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("本软件完全免费，全部功能开源 · GitHub：XIaodou0416/Beans-Music")
+                Text("本软件完全免费，全部功能开源 · GitHub：168chenxin/ChenXinMusic")
                     .font(BeansFont.appFont(11, .semibold))
                     .foregroundStyle(Color.beansAmber)
                     .multilineTextAlignment(.center)
@@ -537,6 +536,7 @@ struct ProfileView: View {
                 Text("“QQ”、“QQ音乐”及企鹅形象等文字、图形和商业标识，其著作权或商标权归腾讯公司所有。QQ音乐享有对其平台授权音乐的版权，请勿随意下载、复制版权内容。具体内容请参考QQ音乐用户协议。")
                 Text("“网易云”、“网易云音乐”等文字、图形和商业标识，其著作权或商标权归网易所有。网易云音乐享有对其平台授权音乐的版权，请勿随意下载、复制版权内容。具体内容请参考网易云音乐用户协议。")
                 Text("“酷狗音乐”及其名称、图形和商业标识归酷狗音乐及相关权利方所有。酷狗音乐享有对其平台授权音乐的版权，请勿随意下载、复制版权内容。具体内容请参考酷狗音乐用户协议。")
+                Text("“汽水音乐”及其名称、图形和商业标识归汽水音乐及相关权利方所有。汽水音乐享有对其平台授权音乐的版权，请勿随意下载、复制版权内容。具体内容请参考汽水音乐用户协议。")
                 Text("音乐 API 来自 GitHub 开源项目，非官方版 API；本软件不提供任何音频存储服务，如需下载音频，请支持正版！")
             }
             .font(BeansFont.appFont(11))
@@ -598,7 +598,7 @@ struct ProfileView: View {
         VStack(spacing: 0) {
             Button {
                 BeansHaptics.tap()
-                if let url = URL(string: "https://github.com/XIaodou0416/Beans-Music") {
+                if let url = URL(string: "https://github.com/168chenxin/ChenXinMusic") {
                     UIApplication.shared.open(url)
                 }
             } label: {
@@ -611,7 +611,7 @@ struct ProfileView: View {
                         Text("更新地址")
                             .font(BeansFont.appFont(14, .semibold))
                             .foregroundStyle(Color.beansLabel)
-                        Text("GitHub：XIaodou0416/Beans-Music")
+                        Text("GitHub：168chenxin/ChenXinMusic")
                             .font(BeansFont.appFont(11))
                             .foregroundStyle(Color.beansComment)
                             .lineLimit(1)
@@ -681,88 +681,9 @@ struct ProfileView: View {
         .beansCardShadow(radius: 9, y: 3)
     }
 
-    /// 我的页底部交流群入口
-    private var communityCard: some View {
-        Button {
-            BeansHaptics.tap()
-            if let url = URL(string: "https://t.me/+k8oYhsIU4sgzOTM1") {
-                UIApplication.shared.open(url)
-            }
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "person.2.fill")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.beansHighlight)
-                    .frame(width: 28)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("交流群")
-                        .font(BeansFont.appFont(14, .semibold))
-                        .foregroundStyle(Color.beansLabel)
-                    Text("点击跳转 Telegram")
-                        .font(BeansFont.appFont(11))
-                        .foregroundStyle(Color.beansComment)
-                }
-                Spacer()
-                Image(systemName: "arrow.up.forward.app")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.beansComment)
-            }
-            .padding(16)
-            .background {
-                BeansGlass(shape: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            }
-        }
-        .buttonStyle(GlassPressButtonStyle(scale: 0.98))
-        .beansCardShadow(radius: 9, y: 3)
-    }
 }
 
-// MARK: - 交流群二维码
-
-struct CommunityQRSheet: View {
-    @EnvironmentObject private var theme: ThemeStore
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        BeansNavigationStack {
-            ZStack {
-                GlassBackdrop(customColor: theme.backgroundSyncAll ? theme.customBackground : nil)
-                VStack(spacing: 18) {
-                    Image("CommunityQR")
-                        .resizable()
-                        .interpolation(.none)
-                        .scaledToFit()
-                        .padding(12)
-                        .background(Color.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                .strokeBorder(Color.beansComment.opacity(0.16), lineWidth: 0.8)
-                        }
-                        .padding(.horizontal, 24)
-                    Text("扫码加入交流群")
-                        .font(BeansFont.appFont(15, .semibold))
-                        .foregroundStyle(Color.beansLabel)
-                    Text("如二维码过期，可在 GitHub 或更新说明中获取最新入口")
-                        .font(BeansFont.appFont(11))
-                        .foregroundStyle(Color.beansComment)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 30)
-                }
-                .padding(.vertical, 22)
-            }
-            .navigationTitle("交流群")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") { dismiss() }
-                }
-            }
-        }
-        .modifier(BeansSheetModifier(detents: [.medium, .large]))
-    }
-}
-
-// MARK: - 统一账号登录面板（网易云 + QQ 音乐整合）
+// MARK: - 统一账号登录面板（网易云、QQ、酷狗、汽水音乐）
 
 struct AccountHubSheet: View {
     @EnvironmentObject private var theme: ThemeStore
@@ -2019,7 +1940,7 @@ struct SettingsView: View {
         }
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         payload["beans.backup.meta"] = [
-            "app": "Beans Music",
+            "app": "称心播放器",
             "created": ISO8601DateFormatter().string(from: Date()),
             "version": version,
             "includedAccounts": includeAccounts,
@@ -2276,10 +2197,10 @@ struct SettingsView: View {
 
     private var footerNote: some View {
         VStack(spacing: 6) {
-            Text("Beans Music · 仅供学习交流，纯 AI 实现此应用")
+            Text("称心播放器 · 仅供学习交流，纯 AI 实现此应用")
                 .font(BeansFont.appFont(11))
                 .foregroundStyle(Color.beansComment.opacity(0.7))
-            Text("接入网易云音乐、QQ 音乐等公开接口")
+            Text("接入网易云音乐、QQ 音乐、酷狗音乐与汽水音乐公开接口")
                 .font(BeansFont.appFont(11))
                 .foregroundStyle(Color.beansComment.opacity(0.7))
         }

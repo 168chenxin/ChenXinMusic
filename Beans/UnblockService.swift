@@ -43,6 +43,8 @@ enum UnblockService {
         let hasSongIdentity = !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || !artists.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         guard hasSongIdentity else { return nil }
+        // Strict songs require title/artist/duration validation; source APIs return URL only.
+        guard !strict else { return nil }
         let sourceStore = UnblockSourceStore.shared
         let presetSources = sourceStore.presetSources
             .filter { $0.enabled && canUse(source: $0, songSource: songSource, neteaseID: neteaseID, qqMid: qqMid, kugouID: kugouID) }

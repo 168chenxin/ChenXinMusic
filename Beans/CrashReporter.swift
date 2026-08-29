@@ -63,7 +63,7 @@ final class CrashReporter {
         let device = UIDevice.current.model
         let os = UIDevice.current.systemName + " " + UIDevice.current.systemVersion
         let content = """
-        Beans Music 崩溃日志
+        称心播放器崩溃日志
         时间：\(stamp)
         版本：\(version) (build \(build))
         设备：\(device)

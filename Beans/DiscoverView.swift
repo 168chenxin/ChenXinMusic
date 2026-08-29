@@ -19,7 +19,7 @@ struct DiscoverView: View {
     /// 主页板块顺序（每日推荐 / 排行榜 / 歌单广场，可自定义）
     @State private var homeOrder = SectionOrderStore.load(SectionOrderStore.homeKey, defaults: SectionOrderStore.homeDefaults)
 
-    /// 当前平台可排序的板块：三个平台都保留主页推荐、排行榜和歌单广场位置。
+    /// 当前平台可排序的板块：支持的平台保留主页推荐、排行榜和歌单广场位置。
     private var availableSections: [String] {
         source == .qq ? ["每日推荐", "排行榜"] : SectionOrderStore.homeDefaults
     }
@@ -705,7 +705,10 @@ struct DiscoverView: View {
             snapshot.kugouTopLists = top
             snapshot.personalized = pp
         case .soda:
-            break
+            snapshot.dailySongs = try await SodaAuth.shared.searchSongs(keyword: "热门歌曲", limit: 30)
+            if SodaAuth.shared.isLoggedIn {
+                snapshot.personalized = (try? await SodaAuth.shared.fetchPlaylists()) ?? []
+            }
         }
         return snapshot
     }

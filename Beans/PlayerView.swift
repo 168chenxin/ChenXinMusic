@@ -465,7 +465,7 @@ struct PlayerView: View {
                         .font(BeansFont.appFont(12, .semibold))
                         .foregroundStyle(palette.secondary)
                         .lineLimit(1)
-                    Text(song?.album ?? "Beans Music")
+                    Text(song?.album ?? "称心播放器")
                         .font(BeansFont.appFont(10))
                         .foregroundStyle(palette.secondary.opacity(0.85))
                         .lineLimit(1)
@@ -1385,7 +1385,7 @@ struct PlayerView: View {
         return [text]
     }
 
-    /// 各平台歌曲链接（网易云 / QQ音乐 / 酷狗音乐）
+    /// 各平台歌曲链接（网易云 / QQ 音乐 / 酷狗音乐 / 汽水音乐）
     private func shareURL(for song: Song) -> URL? {
         switch song.source {
         case .netease:

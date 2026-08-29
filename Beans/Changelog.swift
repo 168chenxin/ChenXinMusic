@@ -24,7 +24,7 @@ enum ChangelogStore {
     static let lastSeenKey = "beans.lastSeenVersion"
 
     static var currentVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     }
 
     static var lastSeenVersion: String {
@@ -43,9 +43,9 @@ enum ChangelogStore {
 
     static let logs: [VersionLog] = [
         VersionLog(
-            id: "1.5.6",
-            version: "1.5.6",
-            title: "汽水音乐与音源兼容",
+            id: "1.0.0",
+            version: "1.0.0",
+            title: "称心播放器首发",
             features: [
                 "新增汽水音乐登录、搜索、歌单同步与播放支持",
                 "第三方音源支持导入落雪 LX JavaScript 脚本，并兼容更多 JSON 配置格式"
@@ -95,7 +95,6 @@ enum ChangelogStore {
             title: "备份、歌词背景与界面体验优化",
             features: [
                 "完善配置备份与恢复，支持保存壁纸、字体、播放器布局、自定义音源和本地歌单等设置",
-                "我的页面新增交流群入口，可直接查看群二维码",
                 "歌词页面支持自定义背景图片、背景模糊，并可同步到封面播放页",
                 "设置新增平台显示管理，主页、搜索、音乐库和登录入口按选择显示平台",
                 "主页歌单广场支持收起和展开，播放设置支持收缩分组"
@@ -111,10 +110,9 @@ enum ChangelogStore {
         VersionLog(
             id: "1.5.2",
             version: "1.5.2",
-            title: "榜单详情、备份与交流群优化",
+            title: "榜单详情与备份优化",
             features: [
                 "备份功能覆盖更多已调试设置，包含壁纸、字体、播放器布局、自定义音源、本地歌单等本机配置",
-                "我的页面底部新增“交流群”入口，点击后可直接查看群二维码",
                 "榜单详情页顶部信息卡恢复与应用整体一致的通透卡片效果",
                 "首次引导页新增平台选择，可按需要只显示部分平台",
                 "设置页新增“平台显示”，可随时重新选择需要展示的平台",
@@ -334,12 +332,12 @@ struct UsageGuideSheet: View {
         (
             "应用简介",
             "music.note.house.fill",
-            ["Beans Music 是一款聚合网易云音乐、QQ 音乐与酷狗音乐歌单同步能力的第三方音乐播放器客户端，仅供个人学习研究使用。"]
+            ["称心播放器是一款聚合网易云音乐、QQ 音乐、酷狗音乐与汽水音乐歌单同步能力的第三方音乐播放器客户端，仅供个人学习研究使用。"]
         ),
         (
             "多平台切换",
             "arrow.left.arrow.right",
-            ["首页和搜索保留网易云 / QQ 音乐入口；音乐库可同步网易云、QQ 音乐与酷狗云端歌单。"]
+            ["首页、搜索和音乐库支持网易云、QQ 音乐、酷狗音乐与汽水音乐；汽水音乐支持歌曲搜索、歌单同步与播放，歌手/专辑搜索和部分歌单管理暂不支持。"]
         ),
         (
             "账号服务",
@@ -389,7 +387,7 @@ struct UsageGuideSheet: View {
                             }
                             .beansCardShadow(radius: 8, y: 3)
                         }
-                        Text("Beans Music · 仅供学习交流 · 音乐版权归各平台所有 · 酷狗音乐名称及图标归酷狗音乐 / 腾讯音乐娱乐相关权利方所有")
+                        Text("称心播放器 · 仅供学习交流 · 音乐版权归各平台所有 · 网易云、QQ、酷狗与汽水音乐名称及图标归各自权利方所有")
                             .font(BeansFont.appFont(11))
                             .foregroundStyle(Color.beansComment.opacity(0.8))
                             .multilineTextAlignment(.center)

@@ -54,7 +54,7 @@ final class BeansLogger: ObservableObject {
     }()
 
     private init() {
-        log("Beans Music 启动（版本 \(Self.appVersion)）", level: .info)
+        log("称心播放器启动（版本 \(Self.appVersion)）", level: .info)
     }
 
     static var appVersion: String {

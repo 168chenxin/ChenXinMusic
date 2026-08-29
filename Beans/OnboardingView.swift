@@ -163,7 +163,7 @@ struct OnboardingView: View {
                 .shadow(color: Color.beansHighlight.opacity(0.45), radius: 24, y: 12)
                 .padding(.bottom, 6)
 
-            Text("欢迎使用 Beans Music")
+            Text("欢迎使用称心播放器")
                 .font(BeansFont.appFont(30, .bold))
                 .foregroundStyle(Color.beansLabel)
 
@@ -335,10 +335,11 @@ struct OnboardingView: View {
                 .foregroundStyle(Color.beansLabel)
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("· Beans Music 只用作个人学习研究，禁止用于商业及非法用途，如产生法律纠纷与本人无关。")
+                Text("· 称心播放器只用作个人学习研究，禁止用于商业及非法用途，如产生法律纠纷与本人无关。")
                 Text("· 音乐 API 来自于 GitHub 开源项目（非官方版 API），本软件不提供任何音频存储服务，如需下载音频，请支持正版！")
                 Text("· 音乐版权归各网站所有，本站不承担任何法律责任和连带责任。")
                 Text("· “酷狗音乐”、酷狗图形标识及相关音乐内容的著作权、商标权或其他权利归酷狗音乐及其相关权利方所有。")
+                Text("· “汽水音乐”及相关音乐内容的著作权、商标权或其他权利归汽水音乐及其相关权利方所有。")
             }
             .font(BeansFont.appFont(13))
             .foregroundStyle(Color.beansSecondary)
