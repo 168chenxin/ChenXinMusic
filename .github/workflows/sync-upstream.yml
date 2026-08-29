@@ -1,0 +1,129 @@
+name: Sync Upstream Release
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: upstream-sync-main
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Find latest stable release
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$(curl --fail --silent --show-error --location \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'User-Agent: ChenXinMusic-upstream-sync' \
+            https://api.github.com/repos/XIaodou0416/Beans-Music/releases/latest \
+            | jq -r '.tag_name // empty')"
+          if [[ ! "$tag" =~ ^[vV]?[0-9]+(\.[0-9]+)*$ ]]; then
+            echo "Unsupported upstream release tag: $tag" >&2
+            exit 1
+          fi
+          version="${tag#v}"
+          version="${version#V}"
+          current="$(tr -d '\r\n' < .github/upstream-release 2>/dev/null || true)"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$tag" == "$current" ]]; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            echo "Upstream release $tag already synced."
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+            echo "New upstream release: $current -> $tag"
+          fi
+
+      - name: Merge upstream release
+        if: steps.release.outputs.changed == 'true'
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git remote add upstream https://github.com/XIaodou0416/Beans-Music.git 2>/dev/null \
+            || git remote set-url upstream https://github.com/XIaodou0416/Beans-Music.git
+          git fetch --no-tags upstream "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          upstream_commit="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+          if git merge-base --is-ancestor "$upstream_commit" HEAD; then
+            echo "Upstream commit $upstream_commit is already included."
+          elif ! git merge --no-ff --no-commit --no-edit "$upstream_commit"; then
+            echo 'Upstream merge conflict:' >&2
+            git status --short >&2
+            git diff --name-only --diff-filter=U >&2
+            git merge --abort || true
+            exit 1
+          fi
+
+      - name: Verify customizations and prepare version
+        if: steps.release.outputs.changed == 'true'
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$RELEASE_VERSION" <<'PY'
+          import re
+          import sys
+
+          version = sys.argv[1]
+          path = 'project.yml'
+          content = open(path, encoding='utf-8').read()
+          if 'CFBundleDisplayName: \u79f0\u5fc3\u64ad\u653e\u5668' not in content:
+              raise SystemExit('ChenXin Player branding was lost')
+          updated, count = re.subn(
+              r'(MARKETING_VERSION:\s*")[^"]+("\s*)',
+              lambda match: match.group(1) + version + match.group(2),
+              content,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit('MARKETING_VERSION was not found')
+          open(path, 'w', encoding='utf-8', newline='').write(updated)
+          PY
+          grep -Fq 'static let repoPath = "168chenxin/ChenXinMusic"' Beans/UpdateChecker.swift
+          test -f Beans/SodaAuth.swift
+          test -f Beans/SodaLoginSheet.swift
+          test -f Beans/Assets.xcassets/BrandSoda.imageset/icon.png
+          test -f Beans/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+          test -f Beans/Assets.xcassets/OnboardingLogo.imageset/icon.png
+          test -f Beans/Assets.xcassets/BrandNetease.imageset/icon.png
+          test -f Beans/Assets.xcassets/BrandQQ.imageset/icon.png
+          test -f Beans/Assets.xcassets/BrandKugou.imageset/icon.png
+
+      - name: Commit and push synchronized source
+        if: steps.release.outputs.changed == 'true'
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$RELEASE_TAG" > .github/upstream-release
+          git add -A
+          git commit -m "chore(sync): merge upstream $RELEASE_TAG [skip ci]"
+          git push origin HEAD:main
+
+      - name: Trigger release build
+        if: steps.release.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: gh workflow run build-unsigned-ipa.yml --ref main -f publish_release=true
