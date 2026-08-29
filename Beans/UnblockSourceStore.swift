@@ -57,26 +57,19 @@ struct ThirdPartySource: Identifiable, Codable, Hashable, Sendable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        func firstString(_ keys: [CodingKeys]) throws -> String? {
+            for key in keys {
+                if let value = try container.decodeIfPresent(String.self, forKey: key) {
+                    return value
+                }
+            }
+            return nil
+        }
         id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
-        name = try (container.decodeIfPresent(String.self, forKey: .name)
-            ?? container.decodeIfPresent(String.self, forKey: .title))
-            ?? "未命名音源"
-        kind = try (container.decodeIfPresent(String.self, forKey: .kind)
-            ?? container.decodeIfPresent(String.self, forKey: .type)
-            ?? container.decodeIfPresent(String.self, forKey: .mode))
-            ?? "keyword"
-        template = try (container.decodeIfPresent(String.self, forKey: .template)
-            ?? container.decodeIfPresent(String.self, forKey: .url)
-            ?? container.decodeIfPresent(String.self, forKey: .api)
-            ?? container.decodeIfPresent(String.self, forKey: .endpoint)
-            ?? container.decodeIfPresent(String.self, forKey: .baseURL)
-            ?? container.decodeIfPresent(String.self, forKey: .baseUrl))
-            ?? ""
-        urlPath = try (container.decodeIfPresent(String.self, forKey: .urlPath)
-            ?? container.decodeIfPresent(String.self, forKey: .path)
-            ?? container.decodeIfPresent(String.self, forKey: .responsePath)
-            ?? container.decodeIfPresent(String.self, forKey: .resultPath))
-            ?? "url"
+        name = try firstString([.name, .title]) ?? "未命名音源"
+        kind = try firstString([.kind, .type, .mode]) ?? "keyword"
+        template = try firstString([.template, .url, .api, .endpoint, .baseURL, .baseUrl]) ?? ""
+        urlPath = try firstString([.urlPath, .path, .responsePath, .resultPath]) ?? "url"
         if let decoded = try? container.decode([String: String].self, forKey: .headers) {
             headers = decoded
         } else if let decoded = try? container.decode([String: FlexibleString].self, forKey: .headers) {
