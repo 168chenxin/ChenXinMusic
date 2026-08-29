@@ -14,6 +14,7 @@ $profile = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'Beans/ProfileView.s
 $discover = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'Beans/DiscoverView.swift')
 $readme = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'README.md')
 $features = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'FEATURES.md')
+$appIcon = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'Beans/Assets.xcassets/AppIcon.appiconset/Contents.json')
 
 if ($auth -notmatch 'normalizeLoginCookies') { throw 'QQ cookie normalization regression' }
 if ($auth -notmatch 'wxrefresh_token') { throw 'WeChat QQ credential regression' }
@@ -55,6 +56,7 @@ if ($discover -notmatch 'case \.soda:') { throw 'Discover soda branch regression
 if ($discover -notmatch 'SodaAuth\.shared\.searchSongs') { throw 'Discover soda content regression' }
 if (-not ($readme.Contains($neteaseName) -and $readme.Contains('QQ') -and $readme.Contains($kugouName) -and $readme.Contains($sodaName))) { throw 'README platform documentation regression' }
 if (-not ($features.Contains($neteaseName) -and $features.Contains('QQ') -and $features.Contains($kugouName) -and $features.Contains($sodaName))) { throw 'Feature platform documentation regression' }
+if ($appIcon -notmatch '"idiom"\s*:\s*"ios-marketing"' -or $appIcon -notmatch '"size"\s*:\s*"1024x1024"') { throw 'AppIcon metadata regression' }
 
 foreach ($asset in @(
     'Beans/Assets.xcassets/AppIcon.appiconset/AppIcon.png',
