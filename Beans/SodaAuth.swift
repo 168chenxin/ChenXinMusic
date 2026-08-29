@@ -334,7 +334,7 @@ final class SodaAuth: ObservableObject {
         seen.insert(id)
         let cover = Self.string(item["cover"]) ?? Self.string(item["cover_url"]) ?? Self.string(item["url_cover"]) ?? ""
         let count = Self.int(item["trackCount"]) ?? Self.int(item["count_tracks"]) ?? Self.int(item["track_count"]) ?? Self.int(item["count"]) ?? 0
-        result.append(Playlist(id: Int(id) ?? BeansHash.stable(id), name: name, coverURL: cover.isEmpty ? nil : URL(string: cover), trackCount: count, source: .soda, rawID: id))
+        result.append(Playlist(id: Int(id) ?? abs(id.hashValue), name: name, coverURL: cover.isEmpty ? nil : URL(string: cover), trackCount: count, source: .soda, rawID: id))
     }
 
     /// 歌单歌曲列表（Luna App 接口 beta-luna.douyin.com/luna/playlist/detail，游标分页）
@@ -381,7 +381,7 @@ final class SodaAuth: ObservableObject {
             ?? (track["author"] as? [[String: Any]])?.compactMap { Self.string($0["name"]) }.joined(separator: " / ")
             ?? (track["singer"] as? String) ?? ""
         let durationMS = Self.double(track["duration"]) ?? Self.double(track["duration_ms"]) ?? 0
-        return Song(soda: Int(id) ?? BeansHash.stable(id), name: name, artists: artists, album: album, coverURL: cover.flatMap { URL(string: $0) }, duration: durationMS / 1000, trackID: id)
+        return Song(soda: Int(id) ?? abs(id.hashValue), name: name, artists: artists, album: album, coverURL: cover.flatMap { URL(string: $0) }, duration: durationMS / 1000, trackID: id)
     }
 
     /// 解析汽水音乐播放地址（网页接口返回的 video_model 或二次播放信息接口）。

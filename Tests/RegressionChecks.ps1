@@ -29,6 +29,8 @@ if ($service -notmatch 'replacingOccurrences\(of: "\{songId\}"') { throw 'source
 if ($service -notmatch 'guard !strict') { throw 'strict source matching regression' }
 if ($model -notmatch 'case id, name, title, kind, type') { throw 'source alias decoding regression' }
 if ($model -notmatch 'FlexibleString') { throw 'numeric header decoding regression' }
+if ($model -notmatch 'func encode\(to encoder: Encoder\) throws') { throw 'source encoding regression' }
+if ($model -match 'BeansHash') { throw 'undefined BeansHash regression' }
 if ($import -notmatch 'sources.*data.*list') { throw 'source wrapper decoding regression' }
 
 $sodaPlaylist = [regex]::Match($soda, '(?s)func fetchPlaylists\(\) async throws -> \[Playlist\] \{.*?\n    private func appendPlaylist').Value

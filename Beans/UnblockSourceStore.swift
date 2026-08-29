@@ -58,24 +58,24 @@ struct ThirdPartySource: Identifiable, Codable, Hashable, Sendable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
-        name = (try container.decodeIfPresent(String.self, forKey: .name))
-            ?? (try container.decodeIfPresent(String.self, forKey: .title))
+        name = try (container.decodeIfPresent(String.self, forKey: .name)
+            ?? container.decodeIfPresent(String.self, forKey: .title))
             ?? "未命名音源"
-        kind = (try container.decodeIfPresent(String.self, forKey: .kind))
-            ?? (try container.decodeIfPresent(String.self, forKey: .type))
-            ?? (try container.decodeIfPresent(String.self, forKey: .mode))
+        kind = try (container.decodeIfPresent(String.self, forKey: .kind)
+            ?? container.decodeIfPresent(String.self, forKey: .type)
+            ?? container.decodeIfPresent(String.self, forKey: .mode))
             ?? "keyword"
-        template = (try container.decodeIfPresent(String.self, forKey: .template))
-            ?? (try container.decodeIfPresent(String.self, forKey: .url))
-            ?? (try container.decodeIfPresent(String.self, forKey: .api))
-            ?? (try container.decodeIfPresent(String.self, forKey: .endpoint))
-            ?? (try container.decodeIfPresent(String.self, forKey: .baseURL))
-            ?? (try container.decodeIfPresent(String.self, forKey: .baseUrl))
+        template = try (container.decodeIfPresent(String.self, forKey: .template)
+            ?? container.decodeIfPresent(String.self, forKey: .url)
+            ?? container.decodeIfPresent(String.self, forKey: .api)
+            ?? container.decodeIfPresent(String.self, forKey: .endpoint)
+            ?? container.decodeIfPresent(String.self, forKey: .baseURL)
+            ?? container.decodeIfPresent(String.self, forKey: .baseUrl))
             ?? ""
-        urlPath = (try container.decodeIfPresent(String.self, forKey: .urlPath))
-            ?? (try container.decodeIfPresent(String.self, forKey: .path))
-            ?? (try container.decodeIfPresent(String.self, forKey: .responsePath))
-            ?? (try container.decodeIfPresent(String.self, forKey: .resultPath))
+        urlPath = try (container.decodeIfPresent(String.self, forKey: .urlPath)
+            ?? container.decodeIfPresent(String.self, forKey: .path)
+            ?? container.decodeIfPresent(String.self, forKey: .responsePath)
+            ?? container.decodeIfPresent(String.self, forKey: .resultPath))
             ?? "url"
         if let decoded = try? container.decode([String: String].self, forKey: .headers) {
             headers = decoded
@@ -86,6 +86,18 @@ struct ThirdPartySource: Identifiable, Codable, Hashable, Sendable {
         }
         enabled = try container.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
         isPreset = try container.decodeIfPresent(Bool.self, forKey: .isPreset) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(kind, forKey: .kind)
+        try container.encode(template, forKey: .template)
+        try container.encode(urlPath, forKey: .urlPath)
+        try container.encode(headers, forKey: .headers)
+        try container.encode(enabled, forKey: .enabled)
+        try container.encode(isPreset, forKey: .isPreset)
     }
 }
 
