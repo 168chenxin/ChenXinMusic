@@ -68,6 +68,8 @@ jobs:
           else
             # ponytail: keep local files on merge conflicts; review upstream changes manually when customizations need them.
             git merge --no-ff --no-commit --no-edit -X ours "$upstream_commit"
+            # ponytail: preserve repository workflows so GITHUB_TOKEN does not need workflow scope.
+            git checkout HEAD -- .github/workflows
           fi
 
       - name: Verify customizations and prepare version
