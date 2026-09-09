@@ -2,18 +2,16 @@ import SwiftUI
 
 struct HistoryView: View {
     @EnvironmentObject private var player: PlayerManager
-    @EnvironmentObject private var theme: ThemeStore
 
     var body: some View {
         BeansNavigationStack {
-            ZStack {
-                GlassBackdrop(customColor: theme.backgroundSyncAll ? theme.customBackground : nil)
+            Group {
                 if player.history.isEmpty {
                     EmptyStateView(icon: "clock.arrow.circlepath", text: "暂无播放历史")
                 } else {
                     List {
                         ForEach(Array(player.history.enumerated()), id: \.element.identityKey) { index, song in
-                            SongCell(song: song) {
+                            SongCell(song: song, glassRow: true) {
                                 player.play(songs: player.history, startAt: index)
                             }
                             .listRowBackground(Color.clear)
@@ -25,6 +23,7 @@ struct HistoryView: View {
                     }
                     .beansScrollContentBackgroundHidden()
                     .listStyle(.plain)
+                    .background(LinearGradient.beansBackdrop)
                 }
             }
             .navigationTitle("最近播放")
@@ -38,11 +37,6 @@ struct HistoryView: View {
                     }
                 }
             }
-        }
-        .background {
-            HighRefreshConfigurator()
-                .frame(width: 0, height: 0)
-                .allowsHitTesting(false)
         }
     }
 }

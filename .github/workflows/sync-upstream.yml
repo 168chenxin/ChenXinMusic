@@ -66,10 +66,8 @@ jobs:
           if git merge-base --is-ancestor "$upstream_commit" HEAD; then
             echo "Upstream commit $upstream_commit is already included."
           else
-            # ponytail: keep local files on merge conflicts; review upstream changes manually when customizations need them.
-            git merge --no-ff --no-commit --no-edit -X ours "$upstream_commit"
-            # ponytail: preserve repository workflows so GITHUB_TOKEN does not need workflow scope.
-            git checkout HEAD -- .github/workflows
+            # ponytail: this fork has incompatible source APIs; record the release without replacing the local tree.
+            git merge --strategy=ours --no-ff --no-commit --no-edit "$upstream_commit"
           fi
 
       - name: Verify customizations and prepare version

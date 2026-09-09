@@ -8,13 +8,12 @@ struct QueueView: View {
     var body: some View {
         let _ = theme.accent
         BeansNavigationStack {
-            ZStack {
-                GlassBackdrop(customColor: theme.backgroundSyncAll ? theme.customBackground : nil)
+            Group {
                 if player.queue.isEmpty {
                     EmptyStateView(icon: "music.note.list", text: "播放队列为空")
                 } else {
                     List {
-                        Section(String(format: NSLocalizedString("接下来 (%d 首)", comment: ""), player.queue.count)) {
+                        Section("接下来 (\(player.queue.count) 首)") {
                             ForEach(Array(player.queue.enumerated()), id: \.element.identityKey) { index, song in
                                 row(song, index: index)
                                     .listRowBackground(Color.clear)
@@ -30,6 +29,7 @@ struct QueueView: View {
                     }
                     .beansScrollContentBackgroundHidden()
                     .listStyle(.plain)
+                    .background(LinearGradient.beansBackdrop)
                 }
             }
             .navigationTitle("播放队列")
@@ -47,11 +47,6 @@ struct QueueView: View {
                     }
                 }
             }
-        }
-        .background {
-            HighRefreshConfigurator()
-                .frame(width: 0, height: 0)
-                .allowsHitTesting(false)
         }
     }
 

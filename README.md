@@ -10,13 +10,7 @@
 
 **👀 在线预览（HTML 介绍页）：** https://168chenxin.github.io/ChenXinMusic/
 
-- NetEase Cloud Music, QQ Music, and Kugou Music browsing and search
-- Account login, synced playlists, favorites, rankings, artists, albums, and recent plays
-- Playback queue, shuffle, repeat, playback speed, sleep timer, background playback, and lock-screen controls
-- Lyrics with translation, appearance controls, scrolling, and interactive seeking
-- Multiple player layouts, Liquid Glass styling on supported systems, themes, wallpapers, and equalizer controls
-- Local playlists, offline files, importable music sources, and native share/export flows
-- Chinese and English localization
+## 🧑‍💻 关于作者
 
 - 作者本人**什么都不会**，连这篇介绍都是 **AI 写的** 🤡
 - 本软件由 **OpenAI Codex** 编程助手开发，从需求分析、UI 设计到代码实现全程由 AI 完成
@@ -146,13 +140,13 @@ Beans/
 └── Assets.xcassets                图标与资源
 ```
 
-## Build
+---
 
-Requirements:
+## 🔨 构建
 
 GitHub Actions（`Build Unsigned IPA`）自动构建，产物发布到 [Releases](https://github.com/168chenxin/ChenXinMusic/releases)。
 
-Generate the project and build an unsigned app:
+本地构建（需要 Mac + Xcode 26）：
 
 ```bash
 brew install xcodegen
@@ -165,16 +159,15 @@ cp -R build/Build/Products/Release-iphoneos/Beans.app Payload/
 ditto -c -k --sequesterRsrc --keepParent Payload ChenXinMusic-unsigned.ipa
 ```
 
-The GitHub Actions workflow can build an unsigned IPA on demand. The workflow is configured for test builds by default and does not create a release unless explicitly enabled.
+## 📲 安装
 
-## Development Notes
+未签名 IPA 需自行签名安装：Sideloadly / AltStore / 爱思助手，使用 Apple ID 签名（免费自签 7 天有效）。
+- 支持 iOS 16+（iOS 26 上为原生液态玻璃，低版本自动使用系统材质）
+- Bundle ID：`com.beans.app`
 
-- The project uses SwiftUI and keeps platform-specific networking inside the corresponding API files.
-- User-configured music sources are stored locally and are not bundled with this repository.
-- Do not commit credentials, cookies, API keys, personal files, build artifacts, or local configuration.
-- Keep changes focused and verify `git diff --check` before opening a pull request.
+---
 
-## License
+## ⚠️ 免责声明
 
 - 本应用仅供个人学习研究使用，禁止用于商业及非法用途，如产生法律纠纷与作者无关
 - 音乐 API 来源于 GitHub 开源项目（非官方版 API），本软件不提供任何音频存储服务
@@ -185,4 +178,8 @@ The GitHub Actions workflow can build an unsigned IPA on demand. The workflow is
 - “汽水音乐”及其名称、图形和商业标识归汽水音乐及相关权利方所有
 - 具体内容请参考各平台用户协议
 
-Music, trademarks, and platform services belong to their respective owners. Use the app responsibly and follow each platform's terms of service.
+## 📄 License
+
+[MIT](LICENSE) © 2026 XIaodou0416
+
+**开源说明：** 本项目为开源软件，代码公开透明，接受 Issue 反馈与 Fork 学习。非官方 API 属逆向学习范畴，请尊重各平台服务条款，合理使用。
