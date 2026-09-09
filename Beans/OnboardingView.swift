@@ -8,9 +8,17 @@ struct OnboardingView: View {
     let onFinish: () -> Void
     @State private var page = 0
     @State private var typed = ""
+    @AppStorage("beans.language") private var languageRaw = AppLanguage.chinese.rawValue
 
     private let totalPages = 4
-    private let confirmText = "我已了解并同意继续使用"
+    private var confirmText: String {
+        languageRaw == AppLanguage.english.rawValue ? "I understand and agree to continue" : "我已了解并同意继续使用"
+    }
+
+    private var isEnglish: Bool { languageRaw == AppLanguage.english.rawValue }
+    private var nextText: String { isEnglish ? "Next" : "下一步" }
+    private var skipText: String { isEnglish ? "Skip Intro" : "跳过介绍" }
+    private var enterText: String { isEnglish ? "Enter Beans Music" : "进入软件" }
 
     var body: some View {
         ZStack {
@@ -38,6 +46,17 @@ struct OnboardingView: View {
                     .padding(.top, 6)
                     .padding(.bottom, 24)
             }
+            .overlay(alignment: .topTrailing) {
+                Picker("语言", selection: $languageRaw) {
+                    ForEach(AppLanguage.allCases) { language in
+                        Text(language.title).tag(language.rawValue)
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(Color.beansHighlight)
+                .padding(.top, 14)
+                .padding(.trailing, 18)
+            }
         }
     }
 
@@ -60,7 +79,7 @@ struct OnboardingView: View {
                 Button {
                     withAnimation(.easeInOut(duration: 0.3)) { page += 1 }
                 } label: {
-                    Text("下一步")
+                    Text(nextText)
                         .font(BeansFont.appFont(16, .bold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -75,14 +94,14 @@ struct OnboardingView: View {
                 Button {
                     withAnimation(.easeInOut(duration: 0.3)) { page = totalPages - 1 }
                 } label: {
-                    Text("跳过介绍")
+                    Text(skipText)
                         .font(BeansFont.appFont(13))
                         .foregroundStyle(Color.beansSecondary)
                 }
             } else {
                 // 免责确认输入框（上方固定提示，输入时不会消失）
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("请输入：\(confirmText)")
+                    Text(LocalizedStringKey("请输入："))
                         .font(BeansFont.appFont(13))
                         .foregroundStyle(Color.beansHighlight)
                         .lineLimit(1)
@@ -102,7 +121,7 @@ struct OnboardingView: View {
                             Button {
                                 withAnimation(.easeOut(duration: 0.2)) { typed = confirmText }
                             } label: {
-                                Text("一键填入")
+                                Text(isEnglish ? "Fill" : "一键填入")
                                     .font(BeansFont.appFont(12, .semibold))
                                     .foregroundStyle(.white)
                                     .padding(.horizontal, 12)
@@ -132,7 +151,7 @@ struct OnboardingView: View {
                 Button {
                     onFinish()
                 } label: {
-                    Text("进入软件")
+                    Text(enterText)
                         .font(BeansFont.appFont(16, .bold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -187,27 +206,27 @@ struct OnboardingView: View {
                 .font(.system(size: 40))
                 .foregroundStyle(LinearGradient.beansAccent)
 
-            Text("你的播放器，你做主")
+            Text(isEnglish ? "Your player, your rules" : "你的播放器，你做主")
                 .font(BeansFont.appFont(26, .bold))
                 .foregroundStyle(Color.beansLabel)
 
-            Text("从全局主题到播放器每个组件，全部可以自定义")
+            Text(isEnglish ? "Customize everything from the global theme to each player component" : "从全局主题到播放器每个组件，全部可以自定义")
                 .font(BeansFont.appFont(14))
                 .foregroundStyle(Color.beansSecondary)
 
             VStack(spacing: 12) {
                 diyRow(icon: "circle.hexagongrid.fill", tint: Color.beansHighlight,
-                       title: "全局主题色盘",
-                       detail: "9 套主题一键换肤，色盘任选颜色，全 App 跟随")
+                       title: isEnglish ? "Global Theme Colors" : "全局主题色盘",
+                       detail: isEnglish ? "Nine themes and custom colors across the app" : "9 套主题一键换肤，色盘任选颜色，全 App 跟随")
                 diyRow(icon: "photo.on.rectangle.angled", tint: .beansSage,
-                       title: "自定义壁纸库",
-                       detail: "多张壁纸随时切换，深浅两套背景，全局同步")
+                       title: isEnglish ? "Custom Wallpaper Library" : "自定义壁纸库",
+                       detail: isEnglish ? "Switch wallpapers anytime with synchronized backgrounds" : "多张壁纸随时切换，深浅两套背景，全局同步")
                 diyRow(icon: "slider.horizontal.3", tint: Color(red: 0.39, green: 0.71, blue: 0.96),
-                       title: "底部布局自由拖动",
-                       detail: "进度条 / 按钮 / 指示线任意摆放缩放")
+                       title: isEnglish ? "Flexible Player Layout" : "底部布局自由拖动",
+                       detail: isEnglish ? "Position and scale the progress bar, buttons, and indicator" : "进度条 / 按钮 / 指示线任意摆放缩放")
                 diyRow(icon: "text.quote", tint: Color(red: 0.96, green: 0.56, blue: 0.70),
-                       title: "歌词全套定制",
-                       detail: "颜色 / 渐变 / 发光 / 模糊 / 3D 倾斜")
+                       title: isEnglish ? "Fully Customizable Lyrics" : "歌词全套定制",
+                       detail: isEnglish ? "Colors / gradients / glow / blur" : "颜色 / 渐变 / 发光 / 模糊")
             }
             .padding(.horizontal, 28)
 
@@ -227,14 +246,15 @@ struct OnboardingView: View {
                         .foregroundStyle(tint)
                 )
             VStack(alignment: .leading, spacing: 3) {
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(BeansFont.appFont(15, .bold))
                     .foregroundStyle(Color.beansLabel)
-                Text(detail)
+                Text(LocalizedStringKey(detail))
                     .font(BeansFont.appFont(12))
                     .foregroundStyle(Color.beansSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.78)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
         }
@@ -269,11 +289,11 @@ struct OnboardingView: View {
 
             VStack(spacing: 12) {
                 platformRow(imageName: "BrandNetease", tint: Color(red: 0.87, green: 0.23, blue: 0.23),
-                            title: "网易云音乐",
-                            detail: "扫码 / 网页登录，同步歌单、收藏、听歌排行、VIP")
+                            title: isEnglish ? "NetEase Cloud Music" : "网易云音乐",
+                            detail: isEnglish ? "Scan or sign in on the web to sync playlists, favorites, charts, and VIP status" : "扫码 / 网页登录，同步歌单、收藏、听歌排行、VIP")
                 platformRow(imageName: "BrandQQ", tint: Color(red: 0.13, green: 0.51, blue: 0.95),
-                            title: "QQ 音乐",
-                            detail: "扫码 / 网页 / Cookie 登录，同步歌单与 VIP")
+                            title: isEnglish ? "QQ Music" : "QQ 音乐",
+                            detail: isEnglish ? "Scan, sign in on the web, or use a Cookie to sync playlists and VIP status" : "扫码 / 网页 / Cookie 登录，同步歌单与 VIP")
                 platformRow(imageName: "BrandKugou", tint: Color(red: 0.12, green: 0.55, blue: 1.0),
                             title: "酷狗音乐",
                             detail: "登录同步云端歌单，并支持酷狗歌曲搜索")
@@ -300,10 +320,10 @@ struct OnboardingView: View {
                         .frame(width: 30, height: 30)
                 )
             VStack(alignment: .leading, spacing: 3) {
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(BeansFont.appFont(15, .bold))
                     .foregroundStyle(Color.beansLabel)
-                Text(detail)
+                Text(LocalizedStringKey(detail))
                     .font(BeansFont.appFont(12))
                     .foregroundStyle(Color.beansSecondary)
             }
@@ -330,7 +350,7 @@ struct OnboardingView: View {
                 .font(.system(size: 40))
                 .foregroundStyle(LinearGradient.beansAccent)
 
-            Text("免责声明")
+            Text(isEnglish ? "Disclaimer" : "免责声明")
                 .font(BeansFont.appFont(24, .bold))
                 .foregroundStyle(Color.beansLabel)
 
@@ -355,7 +375,7 @@ struct OnboardingView: View {
             )
             .padding(.horizontal, 28)
 
-            Text("请按输入框上方的提示，完整输入指定文字后进入软件")
+            Text(isEnglish ? "Enter the exact text shown above to continue" : "请按输入框上方的提示，完整输入指定文字后进入软件")
                 .font(BeansFont.appFont(12))
                 .foregroundStyle(Color.beansSecondary.opacity(0.8))
 

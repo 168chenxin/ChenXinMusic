@@ -93,8 +93,6 @@ struct QQWebLoginPanel: View {
             if auth.hasValidLogin(normalized) {
                 auth.importCookies(normalized, nickname: nil)
                 finishSuccess()
-            } else {
-                message = "未检测到有效登录态，请先在网页中完成 QQ 登录"
             }
         }
     }
@@ -105,6 +103,7 @@ struct QQWebLoginPanel: View {
         message = "✓ QQ 音乐登录成功"
         BeansHaptics.success()
         ToastCenter.shared.show("QQ 音乐登录成功")
+        Task { await FavoritesStore.shared.syncQQFromCloud() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             onSuccess()
         }
@@ -151,7 +150,7 @@ struct QQCookieImportPanel: View {
                 .font(BeansFont.appFont(11, .regular, .monospaced))
                 .beansScrollContentBackgroundHidden()
                 .padding(10)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background { BeansSurface(shape: RoundedRectangle(cornerRadius: 14, style: .continuous)) }
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .frame(height: 160)
                 .padding(.horizontal, 20)
@@ -193,6 +192,7 @@ struct QQCookieImportPanel: View {
         message = "✓ QQ 音乐登录成功"
         BeansHaptics.success()
         ToastCenter.shared.show("QQ 音乐登录成功")
+        Task { await FavoritesStore.shared.syncQQFromCloud() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             onSuccess()
         }

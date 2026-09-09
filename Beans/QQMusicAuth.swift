@@ -30,28 +30,76 @@ final class QQMusicAuth: ObservableObject {
         session = URLSession(configuration: config, delegate: redirectBlocker, delegateQueue: nil)
         if let saved = defaults.dictionary(forKey: cookieKey) as? [String: String], !saved.isEmpty {
             cookies = saved
-            isLoggedIn = true
-            nickname = defaults.string(forKey: nickKey) ?? ""
-            vipBadge = defaults.string(forKey: vipKey)
+            let savedNickname = defaults.string(forKey: nickKey) ?? ""
+            let savedVIPBadge = defaults.string(forKey: vipKey)
+            updatePublishedState {
+                self.isLoggedIn = true
+                self.nickname = savedNickname
+                self.vipBadge = savedVIPBadge
+            }
         }
     }
 
     // MARK: - 登录状态
 
-    /// 登录 QQ 号（cookie uin 形如 o153140965）
+    /// 登录账号 ID。QQ 登录通常使用 uin，微信登录通常使用 wxuin。
     var uin: String {
-        let raw = cookies["uin"] ?? "0"
-        return raw.replacingOccurrences(of: "o", with: "")
+        Self.normalizedUIN(Self.accountID(from: cookies))
     }
 
-    /// 原始 uin（保留 o 前缀，歌单增删等写操作接口需要）
+    /// 原始账号 ID（保留 o 前缀，歌单增删等写操作接口需要）。
+    /// 微信网页登录没有 uin 时回退到 wxuin。
     var rawUin: String {
-        cookies["uin"] ?? "0"
+        Self.accountID(from: cookies)
     }
 
-    /// g_tk（写操作接口签名；由 qqmusic_key/p_skey/skey 计算，未登录时为 5381）
+    var isWeChatLogin: Bool {
+        Self.hasUsableAccountID(cookies["wxuin"]) || !(cookies["wxopenid"] ?? "").isEmpty
+    }
+
+    /// QQ 歌单接口使用的 QQ 账号 ID。微信登录通常没有可用的 QQ uin，
+    /// 此时返回 0，让官方接口根据 wxuin / wxopenid Cookie 识别账号。
+    var playlistUin: String {
+        if isWeChatLogin,
+           !Self.hasUsableAccountID(cookies["p_uin"]),
+           !Self.hasUsableAccountID(cookies["pt2gguin"]) {
+            return Self.normalizedUIN(cookies["wxuin"] ?? "0")
+        }
+        for key in ["uin", "p_uin", "pt2gguin"] {
+            guard let value = cookies[key],
+                  Self.hasUsableAccountID(value) else { continue }
+            return Self.normalizedUIN(value)
+        }
+        return "0"
+    }
+
+    /// QQ/微信登录态可用于歌单接口的身份候选。微信登录时 wxuin 也必须尝试；
+    /// 部分账号的歌单/喜欢接口不会仅凭 uin=0 + Cookie 返回数据。
+    var playlistIdentityCandidates: [String] {
+        let rawValues = [
+            cookies["p_uin"],
+            cookies["pt2gguin"],
+            cookies["uin"],
+            cookies["wxuin"],
+            playlistUin,
+            "0",
+        ]
+        return rawValues.compactMap { value -> String? in
+            guard let value, Self.hasUsableAccountID(value) || value == "0" else { return nil }
+            return Self.normalizedUIN(value)
+        }.reduce(into: [String]()) { result, value in
+            if !result.contains(value) { result.append(value) }
+        }
+    }
+
+    /// g_tk（写操作接口签名；QQ/微信登录均优先使用音乐域凭证）。
     var gtk: Int {
-        let key = cookies["qqmusic_key"] ?? cookies["p_skey"] ?? cookies["skey"] ?? ""
+        let key = cookies["qqmusic_key"]
+            ?? cookies["qm_keyst"]
+            ?? cookies["wxskey"]
+            ?? cookies["p_skey"]
+            ?? cookies["skey"]
+            ?? ""
         return key.isEmpty ? 5381 : Self.hash5381(key)
     }
 
@@ -71,18 +119,28 @@ final class QQMusicAuth: ObservableObject {
         return order.compactMap { key in
             guard let value = cookies[key], !value.isEmpty else { return nil }
             return "\(key)=\(value)"
-        }.joined(separator: "; ")
+        }
+        // 旧版保存的微信登录态可能只有 wxuin；部分 QQ 接口仍只读取 uin。
+        if includeCompatibilityUIN,
+           !Self.hasUsableAccountID(cookies["uin"]),
+           let wxuin = cookies["wxuin"],
+           !wxuin.isEmpty {
+            pairs.insert("uin=\(wxuin)", at: 0)
+        }
+        return pairs.joined(separator: "; ")
     }
 
     func logout() {
         cookies = [:]
         qrsig = ""
-        isLoggedIn = false
-        nickname = ""
-        vipBadge = nil
         defaults.removeObject(forKey: cookieKey)
         defaults.removeObject(forKey: nickKey)
         defaults.removeObject(forKey: vipKey)
+        updatePublishedState {
+            self.isLoggedIn = false
+            self.nickname = ""
+            self.vipBadge = nil
+        }
     }
 
     // MARK: - 网页登录 / Cookie 导入
@@ -95,8 +153,10 @@ final class QQMusicAuth: ObservableObject {
         isLoggedIn = true
         self.nickname = nickname ?? Self.fallbackNickname(normalized)
         defaults.set(cookies, forKey: cookieKey)
-        defaults.set(self.nickname, forKey: nickKey)
-        NotificationCenter.default.post(name: .beansQQLoginDidUpdate, object: nil)
+        defaults.set(resolvedNickname, forKey: nickKey)
+        updatePublishedState {
+            NotificationCenter.default.post(name: .beansQQLoginDidUpdate, object: nil)
+        }
         // 登录成功后异步刷新会员标识与真实昵称（失败静默降级）
         Task { await self.fetchVIPStatus() }
         Task { await self.fetchProfile() }
@@ -114,6 +174,20 @@ final class QQMusicAuth: ObservableObject {
             guard let value = normalized[key] else { return false }
             return !value.isEmpty
         }
+
+        let credentialKeys = [
+            "p_skey", "skey", "qqmusic_key", "qm_keyst",
+            "music_key", "wxskey", "wx_skey", "musickey"
+        ]
+        guard credentialKeys.contains(where: { !(dict[$0] ?? "").isEmpty }) else {
+            return "已读取到账号，但缺少 QQ 音乐登录凭证，请在网页中重新登录后再同步"
+        }
+        return nil
+    }
+
+    /// Cookie 是否包含有效登录态，兼容 QQ 登录的 uin 和微信登录的 wxuin。
+    func hasValidLogin(_ dict: [String: String]) -> Bool {
+        Self.loginValidationMessage(dict) == nil
     }
 
     /// 统一 QQ 号与微信网页登录下发的身份字段。
@@ -154,7 +228,7 @@ final class QQMusicAuth: ObservableObject {
         return dict
     }
 
-    /// uin（可能带 o 前缀）转显示昵称；优先 ptlogin 下发的 ptnick_* / nick Cookie（Mineradio 同款兜底）
+    /// QQ/微信账号 ID 转显示昵称；优先 ptlogin 下发的 ptnick_* / nick Cookie。
     static func fallbackNickname(_ dict: [String: String]) -> String {
         if let key = dict.keys.first(where: { $0.hasPrefix("ptnick") }),
            let raw = dict[key], !raw.isEmpty {
@@ -166,6 +240,27 @@ final class QQMusicAuth: ObservableObject {
         }
         let clean = (dict["uin"] ?? "").replacingOccurrences(of: "o", with: "")
         return clean.isEmpty ? "QQ音乐用户" : "QQ音乐用户 \(clean)"
+    }
+
+    private static func accountID(from cookies: [String: String]) -> String {
+        for key in ["uin", "wxuin", "pt2gguin"] {
+            guard let value = cookies[key],
+                  hasUsableAccountID(value) else { continue }
+            return value.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return "0"
+    }
+
+    private static func hasUsableAccountID(_ raw: String?) -> Bool {
+        guard let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty else { return false }
+        return value != "0" && value != "o0"
+    }
+
+    private static func normalizedUIN(_ raw: String) -> String {
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return "" }
+        return value.hasPrefix("o") ? String(value.dropFirst()) : value
     }
     // MARK: - 扫码登录
 
@@ -245,13 +340,16 @@ final class QQMusicAuth: ObservableObject {
             } catch {
                 return .error(error.localizedDescription)
             }
-            nickname = parsed.nickname
-            isLoggedIn = true
+            let resolvedNickname = parsed.nickname
+            updatePublishedState {
+                self.nickname = resolvedNickname
+                self.isLoggedIn = true
+            }
             defaults.set(cookies, forKey: cookieKey)
-            defaults.set(nickname, forKey: nickKey)
+            defaults.set(resolvedNickname, forKey: nickKey)
             Task { await self.fetchVIPStatus() }
             Task { await self.fetchProfile() }
-            return .success(parsed.nickname)
+            return .success(resolvedNickname)
         case "65", "68":
             return .expired
         case "67":
@@ -585,6 +683,16 @@ final class QQMusicAuth: ObservableObject {
         var r = d.truncatingRemainder(dividingBy: 4294967296.0)
         if r < 0 { r += 4294967296.0 }
         return UInt32(r)
+    }
+
+    /// URLSession and cookie callbacks are not guaranteed to run on the main
+    /// thread. Keep Combine/SwiftUI-visible state changes on the main thread.
+    private func updatePublishedState(_ update: @escaping () -> Void) {
+        if Thread.isMainThread {
+            update()
+        } else {
+            DispatchQueue.main.sync(execute: update)
+        }
     }
 
 }

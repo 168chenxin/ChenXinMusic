@@ -9,14 +9,18 @@ struct VersionLog: Identifiable {
     let notices: [String]
     let features: [String]
     let fixes: [String]
+    let imageURL: URL?
+    let textColorHex: String?
 
-    init(id: String, version: String, title: String, notices: [String] = [], features: [String], fixes: [String]) {
+    init(id: String, version: String, title: String, notices: [String] = [], features: [String], fixes: [String], imageURL: URL? = nil, textColorHex: String? = nil) {
         self.id = id
         self.version = version
         self.title = title
         self.notices = notices
         self.features = features
         self.fixes = fixes
+        self.imageURL = imageURL
+        self.textColorHex = textColorHex
     }
 }
 
@@ -33,6 +37,7 @@ enum ChangelogStore {
 
     static func markSeen() {
         UserDefaults.standard.set(currentVersion, forKey: lastSeenKey)
+        UserDefaults.standard.synchronize()
     }
 
     static var shouldShowWhatsNew: Bool {
@@ -67,11 +72,15 @@ enum ChangelogStore {
             features: [
                 "优化播放中全局刷新策略，移除高刷保持器的常驻空转刷新，降低设置页、我的页面和播放器页面的发热与掉帧",
                 "本地壁纸、歌词背景、设置页缩略图改为复用解码缓存，减少滚动和切换设置时的重复图片解码",
-                "锁屏/系统正在播放封面增加缓存，避免播放状态变化时反复下载和刷新同一张封面"
+                "锁屏/系统正在播放封面增加缓存，避免播放状态变化时反复下载和刷新同一张封面",
+                "聆澜内置音源支持多密钥池，当前密钥未命中时自动切换下一个，并记住最近可用密钥",
+                "播放器设置新增封面页歌名、歌手、预览歌词与未播放歌词颜色调节"
             ],
             fixes: [
                 "修复播放中进度更新过于频繁导致非播放器页面也跟随重绘的问题",
-                "修复重新上传歌词背景或恢复壁纸后，部分位置可能继续显示旧图片缓存的问题"
+                "修复重新上传歌词背景或恢复壁纸后，部分位置可能继续显示旧图片缓存的问题",
+                "修复酷狗排行榜详情歌曲封面链接未归一化，并在官网榜单缺封面时自动用移动端榜单数据补齐封面",
+                "优化巨魔安装场景下播放中切换页面的刷新与解码负担"
             ]
         ),
         VersionLog(
@@ -215,6 +224,9 @@ struct WhatsNewSheet: View {
             }
         }
         .modifier(BeansSheetModifier(detents: [.medium, .large]))
+        .onDisappear {
+            ChangelogStore.markSeen()
+        }
     }
 }
 
@@ -258,7 +270,20 @@ private struct VersionLogCard: View {
                     .foregroundStyle(Color.beansAmber)
                 Text(log.title)
                     .font(BeansFont.appFont(14, .semibold))
-                    .foregroundStyle(Color.beansLabel)
+                    .foregroundStyle(textColor)
+            }
+            if let imageURL = log.imageURL {
+                AsyncImage(url: imageURL) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFit()
+                    } else if phase.error != nil {
+                        EmptyView()
+                    } else {
+                        ProgressView().frame(maxWidth: .infinity, minHeight: 80)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
             if !log.notices.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
@@ -304,7 +329,7 @@ private struct VersionLogCard: View {
 
     private func logSection(title: String, icon: String, items: [String]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
+            Text(LocalizedStringKey(title))
                 .font(BeansFont.appFont(14, .bold))
                 .foregroundStyle(Color.beansAmber)
             ForEach(items, id: \.self) { item in
@@ -313,15 +338,14 @@ private struct VersionLogCard: View {
                         .font(.system(size: 12))
                         .foregroundStyle(Color.beansAmber)
                         .padding(.top, 2)
-                    Text(item)
+                    Text(LocalizedStringKey(item))
                         .font(BeansFont.appFont(13))
-                        .foregroundStyle(Color.beansLabel)
+                        .foregroundStyle(textColor)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
     }
-}
 
 // MARK: - 软件使用说明
 
