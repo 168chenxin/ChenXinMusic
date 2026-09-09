@@ -346,6 +346,7 @@ private struct VersionLogCard: View {
             }
         }
     }
+}
 
 // MARK: - 软件使用说明
 
